@@ -1,0 +1,153 @@
+{
+  "navigation": {
+    "home": "首页",
+    "downloads": "下载",
+    "recent": "最近播放",
+    "settings": "设置",
+    "section_menu": "菜单",
+    "section_library": "库",
+    "section_general": "通用"
+  },
+  "recent": {
+    "title": "最近播放",
+    "clear_all": "清除全部",
+    "empty": "暂无播放历史"
+  },
+  "dashboard": {
+    "search_hint": "搜索",
+    "pin_to_top": "置顶窗口",
+    "unpin_from_top": "取消置顶",
+    "switch_to_light_mode": "切换亮色模式",
+    "switch_to_dark_mode": "切换深色模式",
+    "exit_dialog": {
+      "title": "提示",
+      "content": "关闭窗口将退出Vidra。",
+      "cancel": "我再看看",
+      "confirm": "关闭"
+    }
+  },
+  "search": {
+    "placeholder": "请输入搜索关键词",
+    "prompt": "请输入搜索关键词",
+    "title": "搜索: {}",
+    "no_results": "未找到相关视频",
+    "count_format": "搜索到与 “{}” 相关的 {} 条结果",
+    "error": "搜索出错: {}"
+  },
+  "settings": {
+    "title": "设置",
+    "download": {
+      "title": "下载设置",
+      "location": "下载位置",
+      "concurrent": "同时下载任务数",
+      "recommended": "推荐: {} (基于你的CPU)"
+    },
+    "player": {
+      "title": "播放器设置",
+      "thumbnail_preview": "视频缩略图预览",
+      "thumbnail_preview_desc": "在进度条悬停时显示缩略图"
+    },
+    "storage": {
+      "title": "存储",
+      "cache": "缓存",
+      "clear_cache": "清除缓存",
+      "clear_confirm": "确定要清除所有缓存数据吗？"
+    },
+    "action": {
+      "open_folder": "打开文件夹",
+      "change": "更改",
+      "clear": "清除"
+    },
+    "status": {
+      "calculating": "计算中...",
+      "cleared": "缓存清除成功"
+    }
+  },
+  "video": {
+    "detail": {
+      "not_found": "未找到视频",
+      "error": "错误: {}",
+      "rating_suffix": "分",
+      "play_now": "立即播放",
+      "download": "下载",
+      "done": "完成",
+      "no_episodes_play": "没有可播放的剧集",
+      "no_episodes": "暂无剧集",
+      "download_all": "下载全部",
+      "sort_asc": "升序",
+      "sort_desc": "降序",
+      "download_batch_added": "已添加 {} 集到下载列表",
+      "download_added": "已添加 {} 到下载列表",
+      "episode_prefix": "第 {} 集",
+      "new_badge": "新",
+      "director": "导演",
+      "writer": "编剧",
+      "cast": "主演",
+      "updated": "更新于",
+      "unknown": "未知",
+      "added_date": "添加: {}",
+      "cast_info": "主演: {}",
+      "storyline": "简介"
+    },
+    "section": {
+      "episodes": "剧集",
+      "storyline": "剧情简介",
+      "details": "详细信息",
+      "no_description": "暂无简介"
+    },
+    "player": {
+      "initializing": "正在初始化播放器...",
+      "no_episodes": "暂无剧集",
+      "added_to_download": "已添加 {} 到下载列表",
+      "episode_list": "剧集列表",
+      "episode_download": "剧集下载",
+      "resume_dialog": {
+        "title": "继续播放",
+        "content": "上次观看到 {}",
+        "resume": "继续播放",
+        "restart": "从头观看"
+      },
+      "task_list": "任务列表",
+      "playlist": "播放列表",
+      "next_episode": "下一集",
+      "playback_speed": "播放速度",
+      "playback_quality": "播放清晰度",
+      "quality_default": "默认",
+      "download_tasks": "下载任务",
+      "playback_settings": "播放设置",
+      "auto_next": "自动下一集",
+      "skip_intro": "跳过片头",
+      "skip_outro": "跳过片尾"
+    }
+  },
+  "download": {
+    "title": "下载",
+    "tab": {
+      "downloading": "下载中",
+      "completed": "已完成"
+    },
+    "empty": {
+      "active": "无进行中的下载",
+      "completed": "无已完成的下载"
+    }
+  },
+  "filter": {
+    "all_types": "全部类型",
+    "all_areas": "全部地区",
+    "all_years": "全部年份",
+    "no_category": "无分类"
+  },
+  "common": {
+    "refresh": "刷新",
+    "language": "语言",
+    "zh": "中文",
+    "en": "English",
+    "cancel": "取消",
+    "confirm": "确定",
+    "error": "错误: {}",
+    "loading": "加载中...",
+    "view_details": "查看详情",
+    "waiting_for_video": "正在准备视频...",
+    "close": "关闭"
+  }
+}

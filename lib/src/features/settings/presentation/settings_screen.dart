@@ -1,0 +1,334 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/utils/path.dart';
+import '../data/settings_repository.dart';
+import 'settings_provider.dart';
+import '../domain/app_settings.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final settingsAsync = ref.watch(settingsProvider);
+    final settingsRepo = ref.watch(settingsRepositoryProvider);
+    final recommendedMax = ref.watch(recommendedMaxDownloadsProvider);
+    final cacheSizeAsync = ref.watch(cacheSizeProvider);
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(tr('settings.title'), style: theme.textTheme.titleLarge),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: theme.iconTheme,
+      ),
+      body: settingsAsync.when(
+        data: (settings) => SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSection(
+                context,
+                title: tr('settings.download.title'),
+                children: [
+                  _buildDownloadPathSetting(context, settings, settingsRepo),
+                  const SizedBox(height: 16),
+                  _buildConcurrentDownloadsSetting(
+                    context,
+                    settings,
+                    settingsRepo,
+                    recommendedMax,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _buildSection(
+                context,
+                title: tr('settings.player.title'),
+                children: [
+                  _buildThumbnailPreviewSetting(
+                    context,
+                    settings,
+                    settingsRepo,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _buildSection(
+                context,
+                title: tr('settings.storage.title'),
+                children: [
+                  _buildCacheSetting(context, cacheSizeAsync, settingsRepo),
+                ],
+              ),
+            ],
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) =>
+            Center(child: Text('${tr("common.error")}: $error')),
+      ),
+    );
+  }
+
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withAlpha(50),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.outline.withAlpha(20)),
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDownloadPathSetting(
+    BuildContext context,
+    AppSettings settings,
+    settingsRepo,
+  ) {
+    final theme = Theme.of(context);
+    return ListTile(
+      title: Text(tr('settings.download.location')),
+      subtitle: FutureBuilder<String>(
+        future: settingsRepo.getEffectiveDownloadPath(),
+        builder: (context, snapshot) {
+          final path = snapshot.data ?? tr('common.loading');
+          return Text(
+            path,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+        },
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            tooltip: tr('settings.action.open_folder'),
+            onPressed: () async {
+              try {
+                final path = await settingsRepo.getEffectiveDownloadPath();
+                final uri = Uri.file(path);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                } else {
+                  throw Exception('Cannot open folder');
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${tr("video.detail.error")}: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          TextButton(
+            onPressed: () async {
+              final result = await FilePicker.platform.getDirectoryPath();
+              if (result != null) {
+                final newSettings = AppSettings(
+                  downloadPath: result,
+                  enableThumbnailPreview: settings.enableThumbnailPreview,
+                  maxConcurrentDownloads: settings.maxConcurrentDownloads,
+                );
+                await settingsRepo.updateSettings(newSettings);
+              }
+            },
+            child: Text(tr('settings.action.change')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConcurrentDownloadsSetting(
+    BuildContext context,
+    AppSettings settings,
+    settingsRepo,
+    int recommendedMax,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(tr('settings.download.concurrent')),
+              Text(
+                '${settings.maxConcurrentDownloads}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr(
+              'settings.download.recommended',
+              args: [recommendedMax.toString()],
+            ),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Slider(
+            value: settings.maxConcurrentDownloads.toDouble(),
+            min: 1,
+            max: 10,
+            divisions: 9,
+            activeColor: theme.colorScheme.primary,
+            onChanged: (value) async {
+              final newSettings = AppSettings(
+                downloadPath: settings.downloadPath,
+                enableThumbnailPreview: settings.enableThumbnailPreview,
+                maxConcurrentDownloads: value.toInt(),
+              );
+              await settingsRepo.updateSettings(newSettings);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThumbnailPreviewSetting(
+    BuildContext context,
+    AppSettings settings,
+    settingsRepo,
+  ) {
+    final theme = Theme.of(context);
+    return SwitchListTile(
+      title: Text(tr('settings.player.thumbnail_preview')),
+      subtitle: Text(tr('settings.player.thumbnail_preview_desc')),
+      value: settings.enableThumbnailPreview,
+      activeColor: theme.colorScheme.primary,
+      onChanged: (value) async {
+        final newSettings = AppSettings(
+          downloadPath: settings.downloadPath,
+          enableThumbnailPreview: value,
+          maxConcurrentDownloads: settings.maxConcurrentDownloads,
+        );
+        await settingsRepo.updateSettings(newSettings);
+      },
+    );
+  }
+
+  Widget _buildCacheSetting(
+    BuildContext context,
+    AsyncValue<int> cacheSizeAsync,
+    SettingsRepository settingsRepo,
+  ) {
+    final theme = Theme.of(context);
+    return ListTile(
+      title: Text(tr('settings.storage.cache')),
+      subtitle: cacheSizeAsync.when(
+        data: (size) {
+          final sizeInMB = (size / (1024 * 1024)).toStringAsFixed(2);
+          return Text(
+            '$sizeInMB MB',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          );
+        },
+        loading: () => Text(tr('settings.status.calculating')),
+        error: (error, stackTrace) =>
+            Text('${tr("common.error")} calculating size'),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            tooltip: tr('settings.action.open_folder'),
+            onPressed: () async {
+              try {
+                final cacheDir = await PathHelper.getCacheDirectory();
+                final uri = Uri.file(cacheDir.path);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                } else {
+                  throw Exception('Cannot open folder');
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to open folder: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          TextButton(
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(tr('settings.storage.clear_cache')),
+                  content: Text(tr('settings.storage.clear_confirm')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(tr('common.cancel')),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(tr('settings.action.clear')),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await settingsRepo.clearCache();
+                ref.invalidate(cacheSizeProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr('settings.status.cleared'))),
+                  );
+                }
+              }
+            },
+            child: Text(tr('settings.action.clear')),
+          ),
+        ],
+      ),
+    );
+  }
+}
