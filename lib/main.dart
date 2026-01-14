@@ -71,7 +71,7 @@ Future<void> main() async {
     await DownloadManager().initialize(isar);
     DownloadService().initialize(isar);
     // Initialize FFmpeg in background - Non-blocking
-    // Services.initFFmpeg();
+    Services.initFFmpeg();
   }
 
   WindowManager.register();
