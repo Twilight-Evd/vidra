@@ -53,7 +53,7 @@ packages:
     dependency: "direct main"
     description:
       path: bitsdojo_window
-      ref: plus
+      ref: "v0.0.1"
       resolved-ref: "022233ea842c2bc1ede4a91e4980a8518ef66fb0"
       url: "https://github.com/Twilight-Evd/bitsdojo_window_plus.git"
     source: git

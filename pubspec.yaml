@@ -34,7 +34,7 @@ dependencies:
     git:
       url: https://github.com/Twilight-Evd/bitsdojo_window_plus.git
       path: bitsdojo_window
-      ref: plus
+      ref: v0.0.1
 
   archive: ^4.0.7
   path: ^1.9.1
