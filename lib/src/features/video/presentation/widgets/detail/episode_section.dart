@@ -1,13 +1,15 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:vidra/src/features/video/domain/video_collection.dart';
 import 'package:vidra/src/features/download/data/download_provider.dart';
 import 'package:vidra/src/features/video/presentation/widgets/detail/episode_item.dart';
 import 'package:vidra/src/features/video/presentation/play_history_provider.dart';
+import 'package:vidra/src/features/video/data/video_repository.dart';
 
-class EpisodeSection extends ConsumerWidget {
+class EpisodeSection extends HookConsumerWidget {
   final Video video;
   final ValueNotifier<bool> isAscending;
   final ValueNotifier<bool> isDownloadMode;
@@ -21,6 +23,7 @@ class EpisodeSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lastRefresh = useState<DateTime?>(null);
     if (video.urls == null || video.urls!.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -52,7 +55,7 @@ class EpisodeSection extends ConsumerWidget {
               tr('video.section.episodes'),
               style: theme.textTheme.titleLarge,
             ),
-            _buildControls(context, ref),
+            _buildControls(context, ref, lastRefresh),
           ],
         ),
         const SizedBox(height: 16),
@@ -93,7 +96,11 @@ class EpisodeSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildControls(BuildContext context, WidgetRef ref) {
+  Widget _buildControls(
+    BuildContext context,
+    WidgetRef ref,
+    ValueNotifier<DateTime?> lastRefresh,
+  ) {
     return Row(
       children: [
         ValueListenableBuilder<bool>(
@@ -123,6 +130,57 @@ class EpisodeSection extends ConsumerWidget {
           builder: (context, ascending, _) {
             return Row(
               children: [
+                HookBuilder(
+                  builder: (context) {
+                    final now = DateTime.now();
+                    final isCooldown =
+                        lastRefresh.value != null &&
+                        now.difference(lastRefresh.value!).inSeconds < 30;
+                    return IconButton(
+                      tooltip: tr('common.refresh'),
+                      icon: Icon(
+                        Icons.refresh,
+                        size: 20,
+                        color: isCooldown
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.3)
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onPressed: () {
+                        final clickTime = DateTime.now();
+                        if (lastRefresh.value != null &&
+                            clickTime.difference(lastRefresh.value!).inSeconds <
+                                30) {
+                          final remaining =
+                              30 -
+                              clickTime
+                                  .difference(lastRefresh.value!)
+                                  .inSeconds;
+                          ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '刷新太频繁，请在 $remaining 秒后重试',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                          return;
+                        }
+                        lastRefresh.value = clickTime;
+                        ref.invalidate(
+                          videoByIdProvider((
+                            id: video.apiId,
+                            sourceId: video.sourceId,
+                          )),
+                        );
+                      },
+                    );
+                  },
+                ),
                 Text(
                   ascending
                       ? tr('video.detail.sort_asc')

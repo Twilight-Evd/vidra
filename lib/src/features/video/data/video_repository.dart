@@ -339,37 +339,29 @@ class VideoRepository {
   ).getThumbnail(video, episode: episode, time: time);
 }
 
-final videoSettingsProvider =
-    FutureProvider.family<VideoSettings, ({int videoId, String? sourceId})>((
-      ref,
-      arg,
-    ) async {
+final videoSettingsProvider = FutureProvider.autoDispose
+    .family<VideoSettings, ({int videoId, String? sourceId})>((ref, arg) async {
       final repo = ref.watch(videoRepositoryProvider);
       return await repo.getVideoSettings(arg.videoId, arg.sourceId);
     });
 
-final searchVideosProvider = FutureProvider.family<List<Video>, String>((
-  ref,
-  keyword,
-) async {
-  final repo = ref.watch(videoRepositoryProvider);
-  return await repo.searchVideos(keyword);
-});
+final searchVideosProvider = FutureProvider.autoDispose
+    .family<List<Video>, String>((ref, keyword) async {
+      final repo = ref.watch(videoRepositoryProvider);
+      return await repo.searchVideos(keyword);
+    });
 
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final repo = ref.watch(videoRepositoryProvider);
   return await repo.getCategories();
 });
 
-final videoByIdProvider =
-    FutureProvider.family<Video?, ({int id, bool refresh, String? sourceId})>((
-      ref,
-      arg,
-    ) async {
+final videoByIdProvider = FutureProvider.autoDispose
+    .family<Video?, ({int id, String? sourceId})>((ref, arg) async {
       final repo = ref.watch(videoRepositoryProvider);
       return await repo.getVideo(
         arg.id,
-        forceRefresh: arg.refresh,
+        forceRefresh: true,
         sourceId: arg.sourceId,
       );
     });

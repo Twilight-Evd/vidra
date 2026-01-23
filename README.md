@@ -15,6 +15,7 @@ Vidra 更偏向于一个**播放器能力验证与架构示例**，适用于学�
 
 ---
 
+
 ## 设计理念
 
 - 🧱 **框架化设计**：以播放器能力与架构为核心，而非内容本身
@@ -89,6 +90,13 @@ bitsdojo_window 提供了 Flutter 桌面端中非常关键但官方尚未完全�
 这些扩展并非对 bitsdojo_window 的替代，而是在其稳定能力之上，构建更高层的 **Desktop Window Framework Abstraction**。
 
 ---
+### 多窗口独立播放， 沉浸式观看
+
+
+<img src="resources/image.png" width="50%" >
+
+---
+
 
 ### 3. 视频播放引擎：基于 fvp 的跨平台播放能力
 

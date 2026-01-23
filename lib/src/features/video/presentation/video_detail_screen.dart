@@ -21,7 +21,7 @@ class VideoDetailScreen extends HookConsumerWidget {
         int.tryParse(videoId) ?? (double.tryParse(videoId)?.toInt() ?? -1);
 
     final videoAsync = ref.watch(
-      videoByIdProvider((id: id, refresh: true, sourceId: sourceId)),
+      videoByIdProvider((id: id, sourceId: sourceId)),
     );
     final isAscending = useState(true);
     final isDownloadMode = useState(false);

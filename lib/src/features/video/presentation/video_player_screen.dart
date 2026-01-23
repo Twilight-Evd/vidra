@@ -165,7 +165,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
 
     final id = int.tryParse(widget.videoId) ?? -1;
     final videoAsync = ref.watch(
-      videoByIdProvider((id: id, refresh: false, sourceId: widget.sourceId)),
+      videoByIdProvider((id: id, sourceId: widget.sourceId)),
     );
 
     return Scaffold(
