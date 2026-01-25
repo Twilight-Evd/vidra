@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/log.dart';
 import '../data/video_repository.dart';
 import '../domain/play_history.dart';
 
-final episodeHistoriesProvider =
-    FutureProvider.family<
-      Map<int, EpisodeHistory>,
-      ({int videoId, String? sourceId})
-    >((ref, arg) async {
+final episodeHistoriesProvider = FutureProvider.autoDispose
+    .family<Map<int, EpisodeHistory>, ({int videoId, String? sourceId})>((
+      ref,
+      arg,
+    ) async {
       final repository = ref.watch(videoRepositoryProvider);
       final histories = await repository.getEpisodeHistories(
         arg.videoId,
@@ -17,48 +18,39 @@ final episodeHistoriesProvider =
     });
 
 final playHistoryProvider =
-    AsyncNotifierProvider<PlayHistoryNotifier, List<VideoHistory>>(
+    StreamNotifierProvider.autoDispose<PlayHistoryNotifier, List<VideoHistory>>(
       PlayHistoryNotifier.new,
-      isAutoDispose: true,
     );
 
-class PlayHistoryNotifier extends AsyncNotifier<List<VideoHistory>> {
+class PlayHistoryNotifier extends StreamNotifier<List<VideoHistory>> {
   VideoRepository get _repository => ref.watch(videoRepositoryProvider);
 
   @override
-  Future<List<VideoHistory>> build() async {
-    return _repository.getAllVideoHistory();
-  }
-
-  Future<void> loadHistory() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _repository.getAllVideoHistory());
+  Stream<List<VideoHistory>> build() {
+    return _repository.watchAllVideoHistory();
   }
 
   Future<void> saveVideoHistory(VideoHistory history) async {
     try {
       await _repository.saveVideoHistory(history);
-      await loadHistory();
     } catch (e) {
-      print('Error saving video history: $e');
+      logR('PlayHistory', 'Error saving video history: $e');
     }
   }
 
   Future<void> deleteVideoHistory(int id) async {
     try {
       await _repository.deleteVideoHistory(id);
-      await loadHistory();
     } catch (e) {
-      print('Error deleting video history: $e');
+      logR('PlayHistory', 'Error deleting video history: $e');
     }
   }
 
   Future<void> clearHistory() async {
     try {
       await _repository.clearAllHistory();
-      await loadHistory();
     } catch (e) {
-      print('Error clearing history: $e');
+      logR('PlayHistory', 'Error clearing history: $e');
     }
   }
 }

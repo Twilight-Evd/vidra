@@ -11,8 +11,6 @@ class RecentListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Access context.locale to ensure rebuild on locale change
-    context.locale;
     final historyAsync = ref.watch(playHistoryProvider);
 
     return Scaffold(
@@ -25,7 +23,7 @@ class RecentListScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.read(playHistoryProvider.notifier).loadHistory();
+              ref.invalidate(playHistoryProvider);
             },
             tooltip: tr('common.refresh'),
           ),
@@ -54,9 +52,9 @@ class RecentListScreen extends ConsumerWidget {
 
           return GridView.builder(
             padding: const EdgeInsets.all(24),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              childAspectRatio: 0.65, // Adjust for PopularVideoCard
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 220,
+              childAspectRatio: 0.7,
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
             ),
@@ -115,9 +113,9 @@ class RecentListScreen extends ConsumerWidget {
         },
         loading: () => GridView.builder(
           padding: const EdgeInsets.all(24),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            childAspectRatio: 0.65,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 220,
+            childAspectRatio: 0.7,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),

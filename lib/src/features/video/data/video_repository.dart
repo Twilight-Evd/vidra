@@ -196,6 +196,12 @@ class VideoRepository {
     return await _isar.videoHistorys.where().sortByUpdatedAtDesc().findAll();
   }
 
+  Stream<List<VideoHistory>> watchAllVideoHistory() {
+    return _isar.videoHistorys.where().sortByUpdatedAtDesc().watch(
+      fireImmediately: true,
+    );
+  }
+
   Future<VideoHistory?> getVideoHistory(int videoId, String? sourceId) async {
     final sid = sourceId ?? _defaultDataSource.id;
     return await _isar.videoHistorys
