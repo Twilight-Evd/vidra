@@ -155,7 +155,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final result = await FilePicker.platform.getDirectoryPath();
+              final result = await FilePicker.getDirectoryPath();
               if (result != null) {
                 final newSettings = AppSettings(
                   downloadPath: result,
