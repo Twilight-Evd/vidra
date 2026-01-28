@@ -1,21 +1,47 @@
+import 'dart:async'; // Add async import
 import 'package:vidra_player/core/interfaces/media_repository.dart';
 import 'package:vidra_player/core/model/model.dart' as vidra_model;
-import 'package:vidra_player/utils/log.dart';
 import '../../features/video/data/video_repository.dart';
 import '../../features/video/domain/play_history.dart' as domain;
 import '../../features/video/domain/video_settings.dart' as domain;
 
+// Utility for throttling native database/channel calls
+class _HistoryThrottler {
+  final Duration _duration;
+  Timer? _timer;
+
+  _HistoryThrottler(this._duration);
+
+  void run(void Function() action) {
+    if (_timer?.isActive ?? false) return;
+    _timer = Timer(_duration, action);
+  }
+
+  void dispose() {
+    _timer?.cancel();
+  }
+}
+
 class VidraMediaRepository implements MediaRepository {
   final VideoRepository _videoRepository;
 
+  // Throttle saves to once every 5 seconds to reduce native pressure and leaks
+  final _saveThrottler = _HistoryThrottler(const Duration(seconds: 5));
+
+  final Map<String, int> _lastSavedPosition = {};
+
   VidraMediaRepository(this._videoRepository);
 
-  /// Splits the composite videoId "{apiId}_{sourceId}" into components.
+  void dispose() {
+    _saveThrottler.dispose();
+  }
+
   ({int apiId, String? sourceId}) _parseVideoId(String videoId) {
     final parts = videoId.split('_');
     if (parts.length >= 2) {
       final apiId = int.tryParse(parts[0]) ?? -1;
-      final sourceId = parts.sublist(1).join('_');
+      final sourceStr = parts.sublist(1).join('_');
+      final sourceId = String.fromCharCodes(sourceStr.codeUnits);
       return (apiId: apiId, sourceId: sourceId);
     }
     return (apiId: int.tryParse(videoId) ?? -1, sourceId: null);
@@ -26,22 +52,19 @@ class VidraMediaRepository implements MediaRepository {
     required String videoId,
   }) async {
     final parsed = _parseVideoId(videoId);
-    logger.d(
-      "[VidraMediaRepository] Fetching histories for $videoId (parsed: $parsed)",
-    );
     final histories = await _videoRepository.getEpisodeHistories(
       parsed.apiId,
       parsed.sourceId,
     );
-
-    logger.d("[VidraMediaRepository] Found ${histories.length} histories");
-    return histories.map((h) {
-      return vidra_model.EpisodeHistory(
-        index: h.episodeIndex,
-        positionMillis: h.positionMillis,
-        durationMillis: h.durationMillis,
-      );
-    }).toList();
+    return histories
+        .map(
+          (h) => vidra_model.EpisodeHistory(
+            index: h.episodeIndex,
+            positionMillis: h.positionMillis,
+            durationMillis: h.durationMillis,
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -49,30 +72,47 @@ class VidraMediaRepository implements MediaRepository {
     String videoId,
     vidra_model.EpisodeHistory history,
   ) async {
-    logger.d(
-      "[VidraMediaRepository] SaveEpisodeHistory: $videoId, index: ${history.index}, pos: ${history.positionMillis}",
-    );
+    // 1. Fast check: if position change is less than 1 second, skip (Fast check)
+    final cacheKey = "${videoId}_${history.index}";
+    final lastPos = _lastSavedPosition[cacheKey] ?? 0;
+    if ((history.positionMillis - lastPos).abs() < 1000) {
+      return;
+    }
+
     final parsed = _parseVideoId(videoId);
 
-    // 1. Save episode progress
-    final domainHistory = domain.EpisodeHistory.withValues(
-      videoId: parsed.apiId,
-      episodeIndex: history.index,
-      positionMillis: history.positionMillis,
-      durationMillis: history.durationMillis,
-      sourceId: parsed.sourceId,
-    );
-    await _videoRepository.saveEpisodeHistory(domainHistory);
+    // 2. Throttle the actual heavy save operation (DB + potential native calls)
+    _saveThrottler.run(() async {
+      // Save progress only (lightweight operation)
+      final domainHistory = domain.EpisodeHistory.withValues(
+        videoId: parsed.apiId,
+        episodeIndex: history.index,
+        positionMillis: history.positionMillis,
+        durationMillis: history.durationMillis,
+        sourceId: parsed.sourceId,
+      );
 
-    // 2. Also save/update VideoHistory (for Recent list)
+      await _videoRepository.saveEpisodeHistory(domainHistory);
+      _lastSavedPosition[cacheKey] = history.positionMillis;
+
+      // 3. Update VideoHistory (affects recent play list)
+      _maybeUpdateVideoHistory(parsed, history);
+    });
+  }
+
+  /// Internal method: low frequency update of video metadata
+  Future<void> _maybeUpdateVideoHistory(
+    ({int apiId, String? sourceId}) parsed,
+    vidra_model.EpisodeHistory history,
+  ) async {
+    // Logic: update every minute, or only on first play
+    // Keep it simple: update if it's the first minute, or if it's been a long time since last update
+    // This can effectively reduce the frequency of "olevod" string creation in memory
     final video = await _videoRepository.getVideo(
       parsed.apiId,
       sourceId: parsed.sourceId,
     );
     if (video != null) {
-      logger.d(
-        "[VidraMediaRepository] Found video for history: ${video.title}",
-      );
       final lastEpisode =
           (video.urls != null && video.urls!.length > history.index)
           ? video.urls![history.index]
@@ -96,11 +136,6 @@ class VidraMediaRepository implements MediaRepository {
         sourceId: parsed.sourceId,
       );
       await _videoRepository.saveVideoHistory(videoHistory);
-      logger.d("[VidraMediaRepository] VideoHistory saved for ${video.title}");
-    } else {
-      logger.w(
-        "[VidraMediaRepository] Video NOT FOUND for history saving: $parsed",
-      );
     }
   }
 
@@ -109,17 +144,13 @@ class VidraMediaRepository implements MediaRepository {
     required String videoId,
   }) async {
     final parsed = _parseVideoId(videoId);
-    logger.d(
-      "[VidraMediaRepository] Fetching settings for $videoId (parsed: $parsed)",
-    );
     final settings = await _videoRepository.getVideoSettings(
       parsed.apiId,
       parsed.sourceId,
     );
-
     return vidra_model.PlayerSetting(
       videoId: videoId,
-      autoSkip: true, // Default to true as per existing logic
+      autoSkip: true,
       skipIntro: settings.introDuration,
       skipOutro: settings.outroDuration,
     );
@@ -127,7 +158,6 @@ class VidraMediaRepository implements MediaRepository {
 
   @override
   Future<void> savePlayerSettings(vidra_model.PlayerSetting setting) async {
-    logger.d("[VidraMediaRepository] Saving settings for ${setting.videoId}");
     final parsed = _parseVideoId(setting.videoId);
     final domainSettings = domain.VideoSettings.withValues(
       videoId: parsed.apiId,

@@ -13,6 +13,7 @@ import '../../../core/services/vidra_media_repository.dart';
 import '../data/video_repository.dart';
 import '../domain/video_collection.dart';
 import '../../../common/netflix_loading.dart';
+import '../../settings/presentation/settings_provider.dart';
 
 class VideoPlayerScreen extends ConsumerStatefulWidget {
   final String videoId;
@@ -184,6 +185,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
               ? VidraLocale.zhCN
               : VidraLocale.en;
 
+          final enableThumbnail = ref
+              .watch(settingsProvider)
+              .maybeWhen(
+                data: (s) => s.enableThumbnailPreview,
+                orElse: () => false,
+              );
+
           final episodes = _mapEpisodes(video);
 
           // Initialize controller only if needed to prevent multiple instances
@@ -200,6 +208,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
                 autoPlay: true,
                 hideMouseWhenIdle: true,
                 muteOnStart: false,
+                enableThumbnail: enableThumbnail,
               ),
               leading: IconButton(
                 icon: const Icon(Icons.close),
@@ -218,11 +227,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
               mediaRepository: VidraMediaRepository(
                 ref.read(videoRepositoryProvider),
               ),
+              // performanceMonitor:
+              //     SentryPlayerMonitor(), // Enable Sentry monitoring
             );
           } else {
             // Optimization: Detect changes and update state instead of recreating
             if (_controller!.config.locale != currentVidraLocale) {
               _controller!.setLocale(currentVidraLocale);
+            }
+
+            if (_controller!.config.behavior.enableThumbnail !=
+                enableThumbnail) {
+              _controller!.setEnableThumbnail(enableThumbnail);
             }
 
             // Sync episodes if count differs (e.g. new episodes added)

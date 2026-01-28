@@ -48,6 +48,7 @@ class BitsdojoWindowDelegate implements WindowDelegate {
 
   @override
   Future<void> enterPip() async {
+    WindowHelper.isPip = true;
     final savedSize = await WindowHelper.getSavedWindowSize(
       isPipOverride: true,
     );
@@ -59,6 +60,7 @@ class BitsdojoWindowDelegate implements WindowDelegate {
 
   @override
   Future<void> exitPip() async {
+    WindowHelper.isPip = false;
     appWindow.alignment = Alignment.center;
     appWindow.size = await WindowHelper.playerSize();
     appWindow.minSize = AppConfig.playerMiniSize;

@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fvp/fvp.dart' as fvp;
 
-import 'package:vidra/src/core/services/service.dart';
 import 'package:vidra/src/core/utils/window.dart';
 import 'package:vidra/src/window/window_manager.dart';
 
@@ -28,11 +27,23 @@ import 'package:vidra/src/features/download/domain/download_task.dart';
 import 'package:vidra/src/features/settings/domain/app_settings.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();
-  fvp.registerWith();
+  await _runApp();
+}
 
-  // Initialize Isar
+Future<void> _runApp() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // 1. Core language and plugins
+  await EasyLocalization.ensureInitialized();
+
+  PaintingBinding.instance.imageCache.maximumSize = 50;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 30 * 1024 * 1024;
+  try {
+    fvp.registerWith();
+  } catch (e) {
+    debugPrint('Error registering fvp: $e');
+  }
+
+  // 2. Data layers
   final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open([
     VideoSchema,
@@ -43,7 +54,6 @@ Future<void> main() async {
     AppSettingsSchema,
   ], directory: dir.path);
 
-  // Initial seeding (only for main window to avoid race conditions)
   if (appWindow.isMainWindow) {
     await isar.writeTxn(() async {
       final settings = await isar.appSettings.get(0);
@@ -53,7 +63,6 @@ Future<void> main() async {
     });
   }
 
-  // Read initial data source config
   final appSettings = await isar.appSettings.get(0);
   final initialDataSourceId = appSettings?.lastDataSourceId ?? 'mock';
   final savedLocale = appSettings?.locale;
@@ -65,18 +74,17 @@ Future<void> main() async {
     ],
   );
 
-  // Initialize services - ONLY for main window
+  // 3. Services initialization
   if (appWindow.isMainWindow) {
-    // Initialize download manager and service - Blocking
     await DownloadManager().initialize(isar);
     DownloadService().initialize(isar);
-    // Initialize FFmpeg in background - Non-blocking
-    Services.initFFmpeg();
+    // Services.initFFmpeg();
   }
 
   WindowManager.register();
   WindowHelper.init(container.read(settingsRepositoryProvider));
 
+  // Replace the loading app with the real app
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('zh'), Locale('en')],
@@ -90,13 +98,22 @@ Future<void> main() async {
     ),
   );
 
-  doWhenWindowReady(() {
+  doWhenWindowReady(() async {
     if (appWindow.isMainWindow) {
       final screenSize = appWindow.workingScreenSize;
       final initialSize = Size(screenSize.width * 0.8, screenSize.height * 0.8);
       appWindow.minSize = Size(screenSize.width * 0.6, screenSize.height * 0.6);
       appWindow.size = initialSize;
       appWindow.alignment = Alignment.center;
+
+      // FramePerformanceMonitor.initialize();
+
+      // DEFERRED INIT: Initialize Sentry after window is ready to avoid startup hangs
+      // await SentryConfig.initialize(
+      //   appRunner: () {}, // No-op runner since app is already running
+      //   release: 'vidra@1.0.0+1',
+      //   tracesSampleRate: 1.0,
+      // );
     }
     appWindow.backgroundEffect = WindowEffect.acrylic;
     appWindow.show();
@@ -130,6 +147,7 @@ class MyApp extends ConsumerWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
+      showSemanticsDebugger: false,
     );
   }
 }

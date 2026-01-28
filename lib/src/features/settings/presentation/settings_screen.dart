@@ -155,7 +155,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final result = await FilePicker.getDirectoryPath();
+              final result = await FilePicker.platform.getDirectoryPath();
               if (result != null) {
                 final newSettings = AppSettings(
                   downloadPath: result,
@@ -239,7 +239,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: Text(tr('settings.player.thumbnail_preview')),
       subtitle: Text(tr('settings.player.thumbnail_preview_desc')),
       value: settings.enableThumbnailPreview,
-      activeColor: theme.colorScheme.primary,
+      activeThumbColor: theme.colorScheme.primary,
       onChanged: (value) async {
         final newSettings = AppSettings(
           downloadPath: settings.downloadPath,

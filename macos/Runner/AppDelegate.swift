@@ -5,21 +5,36 @@ import bitsdojo_window_macos
 @main
 class AppDelegate: FlutterAppDelegate {
   private var isExiting = false
+  private var windowCloseObserver: NSObjectProtocol?
   
   override func applicationDidFinishLaunching(_ notification: Notification) {
-    // Listen for primary window close notification from plugin
-    NotificationCenter.default.addObserver(
+    cleanupObserver()
+    
+    windowCloseObserver = NotificationCenter.default.addObserver(
       forName: NSNotification.Name("BitsdojoWindowPrimaryWillClose"),
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      self?.isExiting = true
-      NSApp.terminate(self)
+      guard let strongSelf = self else { return }
+      strongSelf.isExiting = true
+      strongSelf.cleanupObserver()
+      NSApp.terminate(strongSelf)
     }
     
-    // Standard Flutter initialization
     signal(SIGPIPE, SIG_IGN)
     super.applicationDidFinishLaunching(notification)
+  }
+
+  private func cleanupObserver() {
+    if let observer = windowCloseObserver {
+      NotificationCenter.default.removeObserver(observer)
+      windowCloseObserver = nil
+    }
+  }
+
+  override func applicationWillTerminate(_ notification: Notification) {
+    cleanupObserver()
+    super.applicationWillTerminate(notification)
   }
   
   override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -36,7 +51,7 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
   }
-  
+
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
   }

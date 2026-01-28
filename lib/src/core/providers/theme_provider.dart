@@ -13,13 +13,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
     // Load initial state
     final settings = isar.appSettings.getSync(0);
-    print("ThemeModeNotifier: build() - settings found: ${settings != null}");
     if (settings != null) {
-      print(
-        "ThemeModeNotifier: build() - initial theme: ${settings.themeMode}",
-      );
-      // We can't set state directly here if we want to return it,
-      // but we can return the correct initial value.
       _listenToChanges(isar);
       return settings.themeMode;
     }
@@ -29,21 +23,17 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   }
 
   void _listenToChanges(Isar isar) {
-    print("ThemeModeNotifier: starting watcher for AppSettings(id=0)");
     final query = isar.appSettings.where().idEqualTo(0).build();
     final subscription = query.watch().listen((settings) {
       if (settings.isNotEmpty) {
         final newTheme = settings.first.themeMode;
-        print("ThemeModeNotifier: watcher triggered - NEW THEME: $newTheme");
         state = newTheme;
       }
     });
-
     ref.onDispose(() => subscription.cancel());
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    print("ThemeModeNotifier: setThemeMode($mode)");
     final videoRepo = ref.read(videoRepositoryProvider);
     final isar = videoRepo.isar;
     final currentSettings = await isar.appSettings.get(0) ?? AppSettings();

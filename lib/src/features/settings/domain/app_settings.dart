@@ -31,7 +31,7 @@ class AppSettings {
 
   AppSettings({
     this.downloadPath,
-    this.enableThumbnailPreview = true,
+    this.enableThumbnailPreview = false,
     this.maxConcurrentDownloads = 3,
     this.themeMode = ThemeMode.dark,
     this.playerNormalWidth,

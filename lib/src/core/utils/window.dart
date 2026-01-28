@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
@@ -49,9 +48,6 @@ class WindowHelper {
           settings.playerNormalHeight = size.height;
         }
         await _repository!.updateSettings(settings);
-        debugPrint(
-          '[WindowHelper] 已保存窗口尺寸 (${pip ? "PiP" : "Normal"}): ${size.width} x ${size.height}',
-        );
       } catch (e) {
         debugPrint('[WindowHelper] 保存窗口尺寸失败: $e');
       }

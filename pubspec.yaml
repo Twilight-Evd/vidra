@@ -21,8 +21,9 @@ dependencies:
   isar_flutter_libs: ^3.1.0+1
   fvp: ^0.35.2
   vidra_player:
-    git:
-      url: https://github.com/Twilight-Evd/vidra_player.git
+    path: ../vidra_player
+    # git:
+    #   url: https://github.com/Twilight-Evd/vidra_player.git
 
   dio: ^5.9.0
   crypto: ^3.0.7
@@ -31,14 +32,16 @@ dependencies:
   wakelock_plus: ^1.2.8
   file_picker: ^10.3.8
   bitsdojo_window:
-    git:
-      url: https://github.com/Twilight-Evd/bitsdojo_window_plus.git
-      path: bitsdojo_window
-      ref: v0.0.1
+    path: ../bitsdojo_window_plus/bitsdojo_window
+    # git:
+    #   url: https://github.com/Twilight-Evd/bitsdojo_window_plus.git
+    #   path: bitsdojo_window
+    #   ref: v0.0.1
 
   archive: ^4.0.7
   path: ^1.9.1
   easy_localization: ^3.0.8
+  sentry_flutter: ^9.10.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

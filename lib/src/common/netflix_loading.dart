@@ -27,7 +27,6 @@ class _NetflixLoadingState extends State<NetflixLoading>
   @override
   void initState() {
     super.initState();
-    print("[DEBUG_LIFECYCLE] [NetflixLoading] (Video) initState");
     WidgetsBinding.instance.addObserver(this);
     _controller = AnimationController(
       vsync: this,
@@ -37,10 +36,8 @@ class _NetflixLoadingState extends State<NetflixLoading>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print("[DEBUG_LIFECYCLE] [NetflixLoading] (Video) Lifecycle: $state");
     if (state == AppLifecycleState.resumed) {
       if (!_controller.isAnimating) {
-        print("[DEBUG_LIFECYCLE] [NetflixLoading] (Video) Resuming animation");
         _controller.repeat();
       }
     }
@@ -48,7 +45,6 @@ class _NetflixLoadingState extends State<NetflixLoading>
 
   @override
   void dispose() {
-    print("[DEBUG_LIFECYCLE] [NetflixLoading] (Video) dispose");
     WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
@@ -64,7 +60,6 @@ class _NetflixLoadingState extends State<NetflixLoading>
           return AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              // 相位错开
               final phase = (_controller.value + index * 0.2) % 1.0;
               final scaleY = 0.4 + 0.6 * sin(phase * pi);
 
