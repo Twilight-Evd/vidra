@@ -17,8 +17,6 @@ dependencies:
   path_provider: ^2.1.5
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.2
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
   fvp: ^0.35.2
   vidra_player:
     git:
@@ -40,16 +38,16 @@ dependencies:
   archive: ^4.0.7
   path: ^1.9.1
   easy_localization: ^3.0.8
+  drift: ^2.30.1
+  sqlite3_flutter_libs: ^0.5.41
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
 
 dev_dependencies:
   flutter_lints: ^6.0.0
 
   build_runner: ^2.4.13
-  isar_generator:
-    git:
-      url: https://github.com/Twilight-Evd/isar.git
-      path: packages/isar_generator
-      ref: dep_fix
+  drift_dev: ^2.30.1
 
   flutter_launcher_icons: ^0.14.4
 

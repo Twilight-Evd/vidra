@@ -1,19 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
+import '../../../../data/database/app_database_provider.dart';
+import '../../../../data/database/mappers.dart';
 import '../domain/app_settings.dart';
 import '../data/settings_repository.dart';
-import '../../video/data/video_repository.dart';
 
 // Provider for SettingsRepository
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
-  final isar = ref.watch(isarProvider);
-  return SettingsRepository(isar);
+  final db = ref.watch(appDatabaseProvider);
+  return SettingsRepository(db);
 });
 
 // Provider for current settings
 final settingsProvider = StreamProvider<AppSettings>((ref) {
-  final isar = ref.watch(isarProvider);
-  return isar.appSettings.watchObject(0, fireImmediately: true).map((settings) {
-    return settings ?? AppSettings();
+  final db = ref.watch(appDatabaseProvider);
+  return (db.select(db.appSettings)..limit(1)).watchSingleOrNull().map((s) {
+    return s?.toDomain() ?? AppSettings();
   });
 });
 

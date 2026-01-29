@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   bitsdojo_window_windows
   fvp
   isar_flutter_libs
+  sqlite3_flutter_libs
   url_launcher_windows
   vidra_player
 )

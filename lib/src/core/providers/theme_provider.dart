@@ -1,65 +1,60 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
-import '../../features/video/data/video_repository.dart';
-import '../../features/settings/domain/app_settings.dart';
+import 'package:drift/drift.dart' hide Column;
+
+import '../../../data/database/app_database_provider.dart';
+import '../../../data/database/mappers.dart';
+import '../../features/settings/domain/app_settings.dart' as domain;
+
+// Provider for initial value (overridden in main.dart)
+final initialThemeModeProvider = Provider<ThemeMode>((ref) => ThemeMode.dark);
 
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
-    final videoRepo = ref.watch(videoRepositoryProvider);
-    final isar = videoRepo.isar;
+    final db = ref.watch(appDatabaseProvider);
+    final initial = ref.watch(initialThemeModeProvider);
 
-    // Load initial state
-    final settings = isar.appSettings.getSync(0);
-    if (settings != null) {
-      _listenToChanges(isar);
-      return settings.themeMode;
-    }
-
-    _listenToChanges(isar);
-    return ThemeMode.dark;
-  }
-
-  void _listenToChanges(Isar isar) {
-    final query = isar.appSettings.where().idEqualTo(0).build();
-    final subscription = query.watch().listen((settings) {
-      if (settings.isNotEmpty) {
-        final newTheme = settings.first.themeMode;
-        state = newTheme;
+    // Watch for changes in AppSettings
+    final subscription = db.select(db.appSettings).watchSingleOrNull().listen((
+      settingsData,
+    ) {
+      if (settingsData != null) {
+        final newMode = ThemeMode.values[settingsData.themeMode];
+        if (state != newMode) {
+          state = newMode;
+        }
       }
     });
     ref.onDispose(() => subscription.cancel());
+
+    return initial;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    final videoRepo = ref.read(videoRepositoryProvider);
-    final isar = videoRepo.isar;
-    final currentSettings = await isar.appSettings.get(0) ?? AppSettings();
-    currentSettings.themeMode = mode;
-    await isar.writeTxn(() async {
-      await isar.appSettings.put(currentSettings);
+    final db = ref.read(appDatabaseProvider);
+
+    await db.transaction(() async {
+      final existing = await db.select(db.appSettings).getSingleOrNull();
+      var settings = existing != null
+          ? existing.toDomain()
+          : domain.AppSettings();
+
+      settings.themeMode = mode;
+
+      await db
+          .into(db.appSettings)
+          .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
     });
+    // state update is handled by listener usually, but optimistic update is fine
     state = mode;
   }
 
   Future<void> toggleTheme() async {
-    final videoRepo = ref.read(videoRepositoryProvider);
-    final isar = videoRepo.isar;
-    final currentSettings = await isar.appSettings.get(0) ?? AppSettings();
-
-    final nextMode = currentSettings.themeMode == ThemeMode.dark
-        ? ThemeMode.light
-        : ThemeMode.dark;
-
-    currentSettings.themeMode = nextMode;
-
-    await isar.writeTxn(() async {
-      await isar.appSettings.put(currentSettings);
-    });
-
-    state = nextMode;
+    final current = state;
+    final next = current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    await setThemeMode(next);
   }
 }
 

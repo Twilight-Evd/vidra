@@ -1,32 +1,35 @@
 import 'dart:io';
-import 'package:isar/isar.dart';
+import 'package:drift/drift.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../../core/utils/path.dart';
+import '../../../../src/core/utils/path.dart'; // ../../../../ = lib. lib/src/core...
+import '../../../../data/database/app_database.dart' hide AppSettings;
+import '../../../../data/database/mappers.dart';
 import '../domain/app_settings.dart';
 
 class SettingsRepository {
-  final Isar _isar;
+  final AppDatabase _db;
 
-  SettingsRepository(this._isar);
+  SettingsRepository(this._db);
 
   /// Get current settings (creates default if not exists)
   Future<AppSettings> getSettings() async {
-    var settings = await _isar.appSettings.get(0);
-    if (settings == null) {
-      settings = AppSettings();
-      await _isar.writeTxn(() async {
-        await _isar.appSettings.put(settings!);
-      });
+    final s = await _db.select(_db.appSettings).getSingleOrNull();
+    if (s == null) {
+      final newSettings = AppSettings();
+      await _db
+          .into(_db.appSettings)
+          .insert(newSettings.toCompanion(), mode: InsertMode.insertOrReplace);
+      return newSettings;
     }
-    return settings;
+    return s.toDomain();
   }
 
   /// Update settings
   Future<void> updateSettings(AppSettings settings) async {
-    settings.id = 0; // Ensure singleton
-    await _isar.writeTxn(() async {
-      await _isar.appSettings.put(settings);
-    });
+    // Ensure we use the correct ID or Singleton logic
+    await _db
+        .into(_db.appSettings)
+        .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
   }
 
   /// Update locale

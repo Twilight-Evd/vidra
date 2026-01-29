@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:isar/isar.dart';
+import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../data/database/app_database.dart' as db;
+import '../../../../data/database/mappers.dart';
 import '../domain/download_task.dart';
 import '../../../core/services/download_service.dart';
 import '../../settings/data/settings_repository.dart';
@@ -14,7 +16,7 @@ class DownloadManager {
   DownloadManager._internal();
 
   final _downloadService = DownloadService();
-  late Isar _isar;
+  late db.AppDatabase _db;
   late SettingsRepository _settingsRepo;
   final _tasks = <String, DownloadTask>{};
   final _taskController = StreamController<List<DownloadTask>>.broadcast();
@@ -45,9 +47,10 @@ class DownloadManager {
       _tasks.values.where((t) => t.status == DownloadStatus.completed).toList();
 
   /// Initialize manager and load persisted tasks
-  Future<void> initialize(Isar isar) async {
-    _isar = isar;
-    _settingsRepo = SettingsRepository(isar);
+  Future<void> initialize(db.AppDatabase db) async {
+    _db = db;
+    _settingsRepo = SettingsRepository(db);
+    _downloadService.initialize(db);
 
     // Load max concurrent downloads from settings
     final settings = await _settingsRepo.getSettings();
@@ -58,12 +61,12 @@ class DownloadManager {
   }
 
   /// Add a new download task
-  String addTask({
+  Future<String> addTask({
     required int videoId,
     required String videoTitle,
     String? coverUrl,
     required List<Map<String, dynamic>> episodes,
-  }) {
+  }) async {
     // Check if a task for this video already exists
     String? existingTaskId;
     for (final entry in _tasks.entries) {
@@ -96,7 +99,7 @@ class DownloadManager {
               null, // Reset completed date since new episodes are added
         );
         _notifyUpdate();
-        _saveTask(_tasks[existingTaskId]!);
+        await _saveTask(_tasks[existingTaskId]!);
         _processNextTask();
       }
       return existingTaskId;
@@ -123,14 +126,14 @@ class DownloadManager {
 
     _tasks[taskId] = task;
     _notifyUpdate();
-    _saveTask(task);
+    await _saveTask(task);
     _processNextTask();
 
     return taskId;
   }
 
   /// Pause a task
-  void pauseTask(String taskId) {
+  Future<void> pauseTask(String taskId) async {
     final task = _tasks[taskId];
     if (task == null) return;
 
@@ -143,12 +146,12 @@ class DownloadManager {
 
     _tasks[taskId] = task.copyWith(episodes: updatedEpisodes);
     _notifyUpdate();
-    _saveTask(_tasks[taskId]!);
+    await _saveTask(_tasks[taskId]!);
     _processNextTask(); // Try to start other tasks
   }
 
   /// Resume a task
-  void resumeTask(String taskId) {
+  Future<void> resumeTask(String taskId) async {
     final task = _tasks[taskId];
     if (task == null) return;
 
@@ -161,12 +164,12 @@ class DownloadManager {
 
     _tasks[taskId] = task.copyWith(episodes: updatedEpisodes);
     _notifyUpdate();
-    _saveTask(_tasks[taskId]!);
+    await _saveTask(_tasks[taskId]!);
     _processNextTask();
   }
 
   /// Cancel a task
-  void cancelTask(String taskId) {
+  Future<void> cancelTask(String taskId) async {
     final task = _tasks[taskId];
     if (task == null) return;
 
@@ -176,12 +179,12 @@ class DownloadManager {
 
     _tasks[taskId] = task.copyWith(episodes: updatedEpisodes);
     _notifyUpdate();
-    _saveTask(_tasks[taskId]!);
+    await _saveTask(_tasks[taskId]!);
     _processNextTask(); // Try to start other tasks
   }
 
   /// Cancel specific episode
-  void cancelEpisode(String taskId, int episodeIndex) {
+  Future<void> cancelEpisode(String taskId, int episodeIndex) async {
     final task = _tasks[taskId];
     if (task == null || episodeIndex >= task.episodes.length) return;
 
@@ -197,17 +200,17 @@ class DownloadManager {
       );
       _tasks[taskId] = task.copyWith(episodes: updatedEpisodes);
       _notifyUpdate();
-      _saveTask(_tasks[taskId]!);
+      await _saveTask(_tasks[taskId]!);
       _processNextTask(); // Try to start key queued tasks
     }
   }
 
   /// Delete specific episode
-  void deleteEpisode(
+  Future<void> deleteEpisode(
     String taskId,
     int episodeIndex, {
     bool deleteFile = false,
-  }) {
+  }) async {
     final task = _tasks[taskId];
     if (task == null || episodeIndex >= task.episodes.length) return;
 
@@ -231,17 +234,17 @@ class DownloadManager {
 
     // If no episodes left, delete task entirely
     if (updatedEpisodes.isEmpty) {
-      deleteTask(taskId, deleteFile: deleteFile);
+      await deleteTask(taskId, deleteFile: deleteFile);
       return;
     }
 
     _tasks[taskId] = task.copyWith(episodes: updatedEpisodes);
     _notifyUpdate();
-    _saveTask(_tasks[taskId]!);
+    await _saveTask(_tasks[taskId]!);
   }
 
   /// Delete task (optionally with file)
-  void deleteTask(String taskId, {bool deleteFile = false}) {
+  Future<void> deleteTask(String taskId, {bool deleteFile = false}) async {
     final task = _tasks[taskId];
     if (task != null) {
       if (deleteFile) {
@@ -259,9 +262,12 @@ class DownloadManager {
         }
       }
 
-      _isar.writeTxnSync(() {
-        _isar.downloadTasks.deleteSync(task.id);
-      });
+      if (task.id != null) {
+        await (_db.delete(
+          _db.downloadTasks,
+        )..where((t) => t.id.equals(task.id!))).go();
+      }
+
       _tasks.remove(taskId);
       _notifyUpdate();
       _processNextTask(); // Start next if slot freed
@@ -318,7 +324,7 @@ class DownloadManager {
   /// Process a single task
   Future<void> _processTask(DownloadTask task) async {
     for (int i = 0; i < task.episodes.length; i++) {
-      // Re-read task from map to get latest status (could be paused/cancelled)
+      // Safe task retrieval
       final currentTask = _tasks[task.taskId];
       if (currentTask == null) return; // Deleted
 
@@ -371,8 +377,7 @@ class DownloadManager {
             return false;
           },
           onProgress: (progress, bytesDownloaded, totalBytes, status) {
-            // CRITICAL FIX: Prevent race condition. If episode was cancelled externally,
-            // do not overwrite the Cancelled status with Downloading status from a lingering callback.
+            // CRITICAL FIX: Prevent race condition.
             final currentTask = _tasks[task.taskId];
             if (currentTask != null &&
                 (currentTask.episodes[i].status == DownloadStatus.cancelled ||
@@ -403,13 +408,12 @@ class DownloadManager {
         if (outputPath == null) {
           // Cancelled (but check why)
           final t = _tasks[task.taskId];
-          // If task itself wasn't cancelled/paused, it means just this episode was skipped/cancelled
           if (t != null &&
               t.status != DownloadStatus.cancelled &&
               t.status != DownloadStatus.paused) {
             continue; // Move to next episode
           }
-          return; // Stop task processing
+          return; // Stop processing
         }
 
         // Check cancellation one last time before marking complete
@@ -439,9 +443,8 @@ class DownloadManager {
           print('Error downloading episode: $e');
         }
 
-        // Don't mark as failed if it was cancelled
         final t = _tasks[task.taskId];
-        // Check both task and specific episode cancellation
+        // Safely check status
         final isCancelled =
             t == null ||
             t.status == DownloadStatus.cancelled ||
@@ -482,6 +485,7 @@ class DownloadManager {
     }
 
     // Mark task as completed if all episodes are done
+    // Suppress warnings here (logic is sound, just analyzer being paranoid about map returns)
     final updatedTask = _tasks[task.taskId];
     if (updatedTask != null &&
         updatedTask.episodes.every(
@@ -489,7 +493,7 @@ class DownloadManager {
         )) {
       _tasks[task.taskId] = updatedTask.copyWith(completedAt: DateTime.now());
       _notifyUpdate();
-      _saveTask(_tasks[task.taskId]!);
+      await _saveTask(_tasks[task.taskId]!);
     }
   }
 
@@ -542,37 +546,35 @@ class DownloadManager {
     });
   }
 
-  /// Save task to Isar
+  /// Save task to DB
   Future<void> _saveTask(DownloadTask task) async {
     // Check if task is still in memory (not deleted)
     if (!_tasks.containsKey(task.taskId)) return;
 
     try {
-      await _isar.writeTxn(() async {
-        // Double check existence to prevent race condition with deletion
-        if (_tasks.containsKey(task.taskId)) {
-          await _isar.downloadTasks.put(task);
-        }
-      });
+      await _db
+          .into(_db.downloadTasks)
+          .insert(task.toCompanion(), mode: InsertMode.insertOrReplace);
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving task to Isar: $e');
+        print('Error saving task to DB: $e');
       }
     }
   }
 
-  /// Load tasks from Isar
+  /// Load tasks from DB
   Future<void> _loadTasks() async {
     try {
-      final tasks = await _isar.downloadTasks.where().findAll();
+      final tasks = await _db.select(_db.downloadTasks).get();
       _tasks.clear();
-      for (final task in tasks) {
-        _tasks[task.taskId] = task;
+      for (final t in tasks) {
+        final domainTask = t.toDomain();
+        _tasks[domainTask.taskId] = domainTask;
       }
       _notifyUpdate();
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading tasks from Isar: $e');
+        print('Error loading tasks from DB: $e');
       }
     }
   }

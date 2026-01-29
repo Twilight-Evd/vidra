@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'm3u8_downloader.dart';
 import '../../features/settings/data/settings_repository.dart';
+import '../../../data/database/app_database.dart'; // Relative: ../../../data/database...
 
 class DownloadService {
   final M3U8Downloader _downloader = M3U8Downloader(maxConcurrentDownloads: 5);
   SettingsRepository? _settingsRepo;
 
-  void initialize(Isar isar) {
-    _settingsRepo = SettingsRepository(isar);
+  void initialize(AppDatabase db) {
+    _settingsRepo = SettingsRepository(db);
   }
 
   /// Download and convert m3u8 to mp4 using pure Dart implementation

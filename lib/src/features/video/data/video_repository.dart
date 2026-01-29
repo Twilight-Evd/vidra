@@ -1,23 +1,22 @@
 import 'dart:typed_data';
 
+import 'package:drift/drift.dart'; // For Value, OrderingTerm, etc.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
+import '../../../../data/database/app_database.dart' as db;
+import '../../../../data/database/app_database_provider.dart';
+import '../../../../data/database/mappers.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/services/video_thumbnail_service.dart';
 import '../domain/video_collection.dart';
 import '../domain/video_settings.dart';
 import '../domain/play_history.dart';
-import 'package:vidra/src/features/video/domain/category.dart';
+import '../domain/category.dart'; // Relative to this file
 import '../../settings/domain/app_settings.dart';
 import 'video_data_source.dart';
 import 'demo_olevod/olevod_data_source.dart';
 import 'mock/mock_data_source.dart';
 
 // Providers
-final isarProvider = Provider<Isar>((ref) {
-  throw UnimplementedError('isarProvider must be overridden');
-});
-
 final initialDataSourceIdProvider = Provider<String>((ref) {
   throw UnimplementedError('initialDataSourceIdProvider must be overridden');
 });
@@ -39,11 +38,21 @@ class DataSourceIdNotifier extends Notifier<String> {
 
   Future<void> setSource(String id) async {
     state = id;
-    final isar = ref.read(isarProvider);
-    await isar.writeTxn(() async {
-      final settings = await isar.appSettings.get(0) ?? AppSettings();
+    final database = ref.read(appDatabaseProvider);
+    await database.transaction(() async {
+      // Find existing settings or create default
+      // Usually only 1 row for AppSettings.
+      final existing = await database
+          .select(database.appSettings)
+          .getSingleOrNull();
+      var settings = existing != null ? existing.toDomain() : AppSettings();
+
       settings.lastDataSourceId = id;
-      await isar.appSettings.put(settings);
+
+      // Save back
+      await database
+          .into(database.appSettings)
+          .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
     });
   }
 }
@@ -63,18 +72,18 @@ final activeDataSourceProvider = Provider<VideoDataSource>((ref) {
 final videoRepositoryProvider = Provider<VideoRepository>((ref) {
   final dataSource = ref.watch(activeDataSourceProvider);
   final allSources = ref.watch(availableDataSourcesProvider);
-  final isar = ref.watch(isarProvider);
-  return VideoRepository(dataSource, allSources, isar);
+  final database = ref.watch(appDatabaseProvider);
+  return VideoRepository(dataSource, allSources, database);
 });
 
 class VideoRepository {
   final VideoDataSource _defaultDataSource;
   final List<VideoDataSource> _allDataSources;
-  final Isar _isar;
+  final db.AppDatabase _db;
 
-  Isar get isar => _isar;
+  db.AppDatabase get database => _db;
 
-  VideoRepository(this._defaultDataSource, this._allDataSources, this._isar);
+  VideoRepository(this._defaultDataSource, this._allDataSources, this._db);
 
   VideoDataSource _getDataSource(String? sourceId) {
     if (sourceId == null) return _defaultDataSource;
@@ -86,21 +95,24 @@ class VideoRepository {
 
   // App Settings
   Future<AppSettings> getAppSettings() async {
-    final settings = await _isar.appSettings.get(0);
-    return settings ?? AppSettings();
+    final s = await _db.select(_db.appSettings).getSingleOrNull();
+    return s?.toDomain() ?? AppSettings();
   }
 
   Future<void> saveAppSettings(AppSettings settings) async {
-    await _isar.writeTxn(() async {
-      await _isar.appSettings.put(settings); // ID 0 is set in class
-    });
+    await _db
+        .into(_db.appSettings)
+        .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
   }
 
   Future<void> updateLastDataSource(String sourceId) async {
-    await _isar.writeTxn(() async {
-      final settings = await _isar.appSettings.get(0) ?? AppSettings();
+    await _db.transaction(() async {
+      final existing = await _db.select(_db.appSettings).getSingleOrNull();
+      var settings = existing?.toDomain() ?? AppSettings();
       settings.lastDataSourceId = sourceId;
-      await _isar.appSettings.put(settings);
+      await _db
+          .into(_db.appSettings)
+          .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
     });
   }
 
@@ -133,129 +145,161 @@ class VideoRepository {
     String? sourceId,
   }) async {
     final sid = sourceId ?? _defaultDataSource.id;
-    // 1. Check Isar local cache if not forcing refresh
+    // 1. Check local cache if not forcing refresh
     if (!forceRefresh) {
       try {
-        final cached = await _isar.videos
-            .filter()
-            .sourceIdEqualTo(sid)
-            .and()
-            .apiIdEqualTo(apiId)
-            .findFirst();
-        if (cached != null && (cached.urls?.isNotEmpty ?? false)) {
-          return cached;
+        final cached =
+            await (_db.select(
+                  _db.videos,
+                )..where((t) => t.sourceId.equals(sid) & t.apiId.equals(apiId)))
+                .getSingleOrNull();
+
+        // Check if urls exist efficiently?
+        // cached.urls is loaded.
+        if (cached != null) {
+          final domainVideo = cached.toDomain();
+          if (domainVideo.urls?.isNotEmpty ?? false) {
+            return domainVideo;
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        // Log error?
+      }
     }
 
     final ds = _getDataSource(sid);
     final video = await ds.getVideoDetail(apiId);
     if (video != null) {
-      // 2. Save to Isar for future use (and other windows)
+      // 2. Save to DB
       try {
-        await _isar.writeTxn(() async {
-          await _isar.videos.put(video);
+        await _db.transaction(() async {
+          final existing =
+              await (_db.select(_db.videos)..where(
+                    (t) => t.sourceId.equals(sid) & t.apiId.equals(apiId),
+                  ))
+                  .getSingleOrNull();
+
+          if (existing != null) {
+            video.id = existing.id; // Preserve Local ID
+          }
+
+          await _db
+              .into(_db.videos)
+              .insert(video.toCompanion(), mode: InsertMode.insertOrReplace);
         });
       } catch (e) {}
     }
     return video;
   }
 
-  // Local Database methods for favorites/history (kept for future use)
+  // Local Database methods for favorites/history
   Future<void> toggleFavorite(int id) async {
-    final video = await _isar.videos.get(id);
-    if (video != null) {
-      await _isar.writeTxn(() async {
-        // video.isFavorite = !video.isFavorite;
-        await _isar.videos.put(video);
-      });
-    }
+    // Unused
   }
 
   // Video Settings methods
   Future<VideoSettings> getVideoSettings(int videoId, String? sourceId) async {
     final sid = sourceId ?? _defaultDataSource.id;
-    final settings = await _isar.videoSettings
-        .filter()
-        .sourceIdEqualTo(sid)
-        .and()
-        .videoIdEqualTo(videoId)
-        .findFirst();
-    return settings ??
+    final settings =
+        await (_db.select(
+              _db.videoSettings,
+            )..where((t) => t.sourceId.equals(sid) & t.videoId.equals(videoId)))
+            .getSingleOrNull();
+
+    return settings?.toDomain() ??
         VideoSettings.withValues(videoId: videoId, sourceId: sid);
   }
 
   Future<void> saveVideoSettings(VideoSettings settings) async {
-    await _isar.writeTxn(() async {
-      await _isar.videoSettings.put(settings);
-    });
+    await _db
+        .into(_db.videoSettings)
+        .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
   }
 
   // Video History (for "Recent" list)
   Future<List<VideoHistory>> getAllVideoHistory() async {
-    return await _isar.videoHistorys.where().sortByUpdatedAtDesc().findAll();
+    final history =
+        await (_db.select(_db.videoHistory)..orderBy([
+              (t) => OrderingTerm(
+                expression: t.updatedAt,
+                mode: OrderingMode.desc,
+              ),
+            ]))
+            .get();
+    return history.map((h) => h.toDomain()).toList();
   }
 
   Stream<List<VideoHistory>> watchAllVideoHistory() {
-    return _isar.videoHistorys.where().sortByUpdatedAtDesc().watch(
-      fireImmediately: true,
-    );
+    return (_db.select(_db.videoHistory)..orderBy([
+          (t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc),
+        ]))
+        .watch()
+        .map((rows) => rows.map((h) => h.toDomain()).toList());
   }
 
   Future<VideoHistory?> getVideoHistory(int videoId, String? sourceId) async {
     final sid = sourceId ?? _defaultDataSource.id;
-    return await _isar.videoHistorys
-        .filter()
-        .sourceIdEqualTo(sid)
-        .and()
-        .videoIdEqualTo(videoId)
-        .findFirst();
+    final h =
+        await (_db.select(
+              _db.videoHistory,
+            )..where((t) => t.sourceId.equals(sid) & t.videoId.equals(videoId)))
+            .getSingleOrNull();
+    return h?.toDomain();
   }
 
   Future<void> saveVideoHistory(VideoHistory history) async {
-    await _isar.writeTxn(() async {
-      await _isar.videoHistorys.put(history);
-    });
+    final existing = await getVideoHistory(history.videoId, history.sourceId);
+    if (existing != null) {
+      history.id = existing.id;
+    }
+
+    await _db
+        .into(_db.videoHistory)
+        .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
   }
 
   Future<void> deleteVideoHistory(int id) async {
-    final history = await _isar.videoHistorys.get(id);
-    if (history == null) return;
+    final history = await (_db.select(
+      _db.videoHistory,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
 
-    final videoId = history.videoId;
-    final sourceId = history.sourceId;
+    if (history != null) {
+      final videoId = history.videoId;
+      final sourceId = history.sourceId;
 
-    await _isar.writeTxn(() async {
-      // 1. Delete history entry itself
-      await _isar.videoHistorys.delete(id);
+      await _db.transaction(() async {
+        // 1. Delete history
+        await (_db.delete(
+          _db.videoHistory,
+        )..where((t) => t.id.equals(id))).go();
 
-      // 2. Delete cached video details
-      final video = await _isar.videos
-          .filter()
-          .sourceIdEqualTo(sourceId)
-          .and()
-          .apiIdEqualTo(videoId)
-          .findFirst();
-      if (video != null) {
-        await _isar.videos.delete(video.id);
-      }
+        // 2. Delete related videos
+        // sourceId can be null. Safe check.
+        if (sourceId != null) {
+          await (_db.delete(_db.videos)..where(
+                (t) => t.sourceId.equals(sourceId) & t.apiId.equals(videoId),
+              ))
+              .go();
 
-      // 3. Delete video-specific settings (intro/outro skip, etc.)
-      await _isar.videoSettings
-          .filter()
-          .sourceIdEqualTo(sourceId)
-          .and()
-          .videoIdEqualTo(videoId)
-          .deleteAll();
+          // 3. Delete settings
+          await (_db.delete(_db.videoSettings)..where(
+                (t) => t.sourceId.equals(sourceId) & t.videoId.equals(videoId),
+              ))
+              .go();
 
-      // 4. Delete all episode progress for this video
-      await _isar.episodeHistorys
-          .filter()
-          .sourceIdEqualTo(sourceId)
-          .and()
-          .videoIdEqualTo(videoId)
-          .deleteAll();
-    });
+          // 4. Delete episode history
+          await (_db.delete(_db.episodeHistory)..where(
+                (t) => t.sourceId.equals(sourceId) & t.videoId.equals(videoId),
+              ))
+              .go();
+        } else {
+          // Handle null sourceId: check t.sourceId.isNull()
+          // Video Repository usually requires sourceId.
+          // If sourceId is null, we might skip deleting related or query with isNull()
+          // Assuming if null, we only delete history.
+        }
+      });
+    }
   }
 
   Future<EpisodeHistory?> getEpisodeHistory(
@@ -264,14 +308,15 @@ class VideoRepository {
     String? sourceId,
   ) async {
     final sid = sourceId ?? _defaultDataSource.id;
-    return await _isar.episodeHistorys
-        .filter()
-        .sourceIdEqualTo(sid)
-        .and()
-        .videoIdEqualTo(videoId)
-        .and()
-        .episodeIndexEqualTo(episodeIndex)
-        .findFirst();
+    final h =
+        await (_db.select(_db.episodeHistory)..where(
+              (t) =>
+                  t.sourceId.equals(sid) &
+                  t.videoId.equals(videoId) &
+                  t.episodeIndex.equals(episodeIndex),
+            ))
+            .getSingleOrNull();
+    return h?.toDomain();
   }
 
   Future<List<EpisodeHistory>> getEpisodeHistories(
@@ -279,16 +324,13 @@ class VideoRepository {
     String? sourceId,
   ) async {
     final sid = sourceId ?? _defaultDataSource.id;
-    return await _isar.episodeHistorys
-        .filter()
-        .sourceIdEqualTo(sid)
-        .and()
-        .videoIdEqualTo(videoId)
-        .findAll();
+    final list = await (_db.select(
+      _db.episodeHistory,
+    )..where((t) => t.sourceId.equals(sid) & t.videoId.equals(videoId))).get();
+    return list.map((h) => h.toDomain()).toList();
   }
 
   Future<void> saveEpisodeHistory(EpisodeHistory history) async {
-    // Check if entry exists for this video+episode
     final existing = await getEpisodeHistory(
       history.videoId,
       history.episodeIndex,
@@ -298,9 +340,9 @@ class VideoRepository {
       history.id = existing.id;
     }
 
-    await _isar.writeTxn(() async {
-      await _isar.episodeHistorys.put(history);
-    });
+    await _db
+        .into(_db.episodeHistory)
+        .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
   }
 
   Future<void> deleteEpisodeHistory(
@@ -310,18 +352,18 @@ class VideoRepository {
   ) async {
     final existing = await getEpisodeHistory(videoId, episodeIndex, sourceId);
     if (existing != null) {
-      await _isar.writeTxn(() async {
-        await _isar.episodeHistorys.delete(existing.id);
-      });
+      await (_db.delete(
+        _db.episodeHistory,
+      )..where((t) => t.id.equals(existing.id))).go();
     }
   }
 
   Future<void> clearAllHistory() async {
-    await _isar.writeTxn(() async {
-      await _isar.videoHistorys.clear();
-      await _isar.episodeHistorys.clear();
-      await _isar.videos.clear();
-      await _isar.videoSettings.clear();
+    await _db.transaction(() async {
+      await _db.delete(_db.videoHistory).go();
+      await _db.delete(_db.episodeHistory).go();
+      await _db.delete(_db.videos).go();
+      await _db.delete(_db.videoSettings).go();
     });
   }
 
