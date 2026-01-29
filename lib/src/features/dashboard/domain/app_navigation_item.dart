@@ -7,36 +7,42 @@ enum AppNavigationItem {
     icon: Icons.home,
     branchIndex: 0,
     sectionKey: 'navigation.section_menu',
+    route: '/',
   ),
   downloads(
     labelKey: 'navigation.downloads',
     icon: Icons.download,
     branchIndex: 1,
     sectionKey: 'navigation.section_library',
+    route: '/downloads',
   ),
   recent(
     labelKey: 'navigation.recent',
     icon: Icons.schedule,
     branchIndex: 2,
     sectionKey: 'navigation.section_library',
+    route: '/recent',
   ),
   settings(
     labelKey: 'navigation.settings',
     icon: Icons.settings,
     branchIndex: 3,
     sectionKey: 'navigation.section_general',
+    route: '/settings',
   );
 
   final String labelKey;
   final IconData icon;
   final int branchIndex;
   final String sectionKey;
+  final String route;
 
   const AppNavigationItem({
     required this.labelKey,
     required this.icon,
     required this.branchIndex,
     required this.sectionKey,
+    required this.route,
   });
 
   String get localizedLabel => tr(labelKey);

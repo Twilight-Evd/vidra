@@ -11,8 +11,8 @@ import 'domain/app_navigation_item.dart';
 import 'package:vidra/src/features/dashboard/widgets/titlebar.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  final StatefulNavigationShell navigationShell;
-  const DashboardScreen({super.key, required this.navigationShell});
+  final Widget child;
+  const DashboardScreen({super.key, required this.child});
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -87,21 +87,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     });
   }
 
-  int _getSidebarIndex(int branchIndex) {
-    return branchIndex;
+  int _getCurrentIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    if (location == '/') return 0;
+    if (location.startsWith('/downloads')) return 1;
+    if (location.startsWith('/recent')) return 2;
+    if (location.startsWith('/settings')) return 3;
+    return 0;
   }
 
   void _onDestinationSelected(BuildContext context, int index) {
     final item = AppNavigationItem.fromBranchIndex(index);
     if (item != null) {
-      if (item == AppNavigationItem.recent) {
-        // Force refresh recent list whenever navigating to it
-        ref.read(playHistoryProvider.notifier).manualRefresh();
-      }
-      widget.navigationShell.goBranch(
-        item.branchIndex,
-        initialLocation: index == widget.navigationShell.currentIndex,
-      );
+      context.go(item.route);
     }
   }
 
@@ -110,15 +108,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: WindowBorder(
-        // color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         color: Colors.transparent,
         width: 1,
         child: Row(
           children: [
             Sidebar(
-              selectedIndex: _getSidebarIndex(
-                widget.navigationShell.currentIndex,
-              ),
+              selectedIndex: _getCurrentIndex(context),
               onDestinationSelected: (index) =>
                   _onDestinationSelected(context, index),
             ),
@@ -142,10 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                   }
                                 },
                                 onHomeRequested: () {
-                                  widget.navigationShell.goBranch(
-                                    0,
-                                    initialLocation: true,
-                                  );
+                                  context.go('/');
                                 },
                               ),
                             ),
@@ -173,14 +165,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           }
                         },
                         onHomeRequested: () {
-                          widget.navigationShell.goBranch(
-                            0,
-                            initialLocation: true,
-                          );
+                          context.go('/');
                         },
                       ),
                     ),
-                  Expanded(child: widget.navigationShell),
+                  Expanded(child: widget.child),
                 ],
               ),
             ),

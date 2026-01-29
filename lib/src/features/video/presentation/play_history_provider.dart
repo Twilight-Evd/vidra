@@ -13,7 +13,6 @@ final episodeHistoriesProvider = FutureProvider.autoDispose
         arg.videoId,
         arg.sourceId,
       );
-      // Create a map for O(1) lookup: episodeIndex -> EpisodeHistory
       return {for (var h in histories) h.episodeIndex: h};
     });
 

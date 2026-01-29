@@ -44,7 +44,7 @@ class VideoDetailSkeleton extends StatelessWidget {
               enabled: true,
               direction: const ShimmerDirection.fromLTRB(),
               child: Container(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
           ),

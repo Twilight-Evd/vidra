@@ -3,8 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'play_history_provider.dart';
 import '../domain/video_collection.dart';
-import 'package:vidra/src/features/video/presentation/widgets/cards/video_cards.dart';
 import '../../../common/skeleton/video_card_skeleton.dart';
+import 'widgets/cards/popular_video_card.dart';
 
 class RecentListScreen extends ConsumerStatefulWidget {
   const RecentListScreen({super.key});

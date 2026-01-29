@@ -102,13 +102,6 @@ class VideoListScreen extends HookConsumerWidget {
             ),
 
           if (videos.isNotEmpty) ...[
-            // Featured Banner (maybe optional based on page?)
-            // const SliverPadding(
-            //   padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-            //   sliver: SliverToBoxAdapter(child: FeaturedBanner()),
-            // ),
-
-            // Video Grid (using PopularVideoCard for uniform look)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(

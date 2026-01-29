@@ -113,7 +113,7 @@ class EpisodeItem extends ConsumerWidget {
     if (isDownloadMode) {
       final manager = ref.read(downloadManagerProvider);
       manager.addTask(
-        videoId: video.id,
+        videoId: video.apiId,
         videoTitle: video.title,
         coverUrl: video.coverUrl,
         episodes: [

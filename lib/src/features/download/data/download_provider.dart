@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../domain/download_task.dart';
 import 'download_manager.dart';
@@ -17,18 +18,36 @@ final downloadTasksProvider = StreamProvider<List<DownloadTask>>((ref) {
 final activeDownloadsProvider = Provider<List<DownloadTask>>((ref) {
   final tasksAsync = ref.watch(downloadTasksProvider);
   return tasksAsync.when(
-    data: (tasks) => tasks
-        .where(
-          (t) =>
-              t.status == DownloadStatus.downloading ||
-              t.status == DownloadStatus.queued ||
-              t.status == DownloadStatus.paused ||
-              t.status == DownloadStatus.cancelled ||
-              t.status == DownloadStatus.failed,
-        )
-        .toList(),
+    data: (tasks) {
+      if (kDebugMode) {
+        print(
+          'activeDownloadsProvider: Received ${tasks.length} tasks from manager',
+        );
+      }
+      final filtered = tasks
+          .where(
+            (t) =>
+                t.status == DownloadStatus.downloading ||
+                t.status == DownloadStatus.queued ||
+                t.status == DownloadStatus.paused ||
+                t.status == DownloadStatus.cancelled ||
+                t.status == DownloadStatus.failed,
+          )
+          .toList();
+      if (kDebugMode) {
+        print(
+          'activeDownloadsProvider: Filtered to ${filtered.length} active tasks',
+        );
+      }
+      return filtered;
+    },
     loading: () => [],
-    error: (error, stackTrace) => [],
+    error: (error, stackTrace) {
+      if (kDebugMode) {
+        print('activeDownloadsProvider Error: $error');
+      }
+      return [];
+    },
   );
 });
 
@@ -36,10 +55,29 @@ final activeDownloadsProvider = Provider<List<DownloadTask>>((ref) {
 final completedDownloadsProvider = Provider<List<DownloadTask>>((ref) {
   final tasksAsync = ref.watch(downloadTasksProvider);
   return tasksAsync.when(
-    data: (tasks) =>
-        tasks.where((t) => t.status == DownloadStatus.completed).toList(),
+    data: (tasks) {
+      if (kDebugMode) {
+        print(
+          'completedDownloadsProvider: Received ${tasks.length} tasks from manager',
+        );
+      }
+      final filtered = tasks
+          .where((t) => t.status == DownloadStatus.completed)
+          .toList();
+      if (kDebugMode) {
+        print(
+          'completedDownloadsProvider: Filtered to ${filtered.length} completed tasks',
+        );
+      }
+      return filtered;
+    },
     loading: () => [],
-    error: (error, stackTrace) => [],
+    error: (error, stackTrace) {
+      if (kDebugMode) {
+        print('completedDownloadsProvider Error: $error');
+      }
+      return [];
+    },
   );
 });
 

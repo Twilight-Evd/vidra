@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../data/download_provider.dart';
@@ -10,9 +11,14 @@ class DownloadListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    context.locale; // Ensure rebuild on locale change
     final activeTasks = ref.watch(activeDownloadsProvider);
     final completedTasks = ref.watch(completedDownloadsProvider);
+
+    if (kDebugMode) {
+      print(
+        'DownloadListScreen: activeTasks=${activeTasks.length}, completedTasks=${completedTasks.length}',
+      );
+    }
 
     return DefaultTabController(
       length: 2,

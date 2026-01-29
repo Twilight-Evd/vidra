@@ -249,9 +249,9 @@ class _PopularVideoCardState extends ConsumerState<PopularVideoCard>
                           fontSize: 12,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       if (widget.video.remarks != null)
-                        Flexible(
+                        Expanded(
                           child: Text(
                             widget.video.remarks!, // e.g. "更新至第05集"
                             style: const TextStyle(
@@ -260,6 +260,7 @@ class _PopularVideoCardState extends ConsumerState<PopularVideoCard>
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
+                            textAlign: TextAlign.right,
                           ),
                         ),
                     ],

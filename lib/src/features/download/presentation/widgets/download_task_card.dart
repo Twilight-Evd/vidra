@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/download_task.dart';
 import '../../data/download_provider.dart';
-import '../../../../common/netflix_loading.dart';
 import '../../../video/data/video_repository.dart';
 
 class DownloadTaskCard extends ConsumerStatefulWidget {
@@ -345,11 +344,7 @@ class _DownloadTaskCardState extends ConsumerState<DownloadTaskCard> {
       case DownloadStatus.completed:
         return const Icon(Icons.check_circle, color: Colors.green, size: 20);
       case DownloadStatus.downloading:
-        return const SizedBox(
-          width: 20,
-          height: 20,
-          child: NetflixLoading(size: 20),
-        );
+        return const Icon(Icons.download, color: Colors.red, size: 20);
       case DownloadStatus.failed:
         return const Icon(Icons.error, color: Colors.red, size: 20);
       case DownloadStatus.paused:

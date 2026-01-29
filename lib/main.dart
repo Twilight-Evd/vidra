@@ -85,9 +85,10 @@ Future<void> _runApp() async {
   );
 
   // 3. Services initialization
-  if (appWindow.isMainWindow) {
-    await DownloadManager().initialize(database);
-  }
+  await DownloadManager().initialize(
+    database,
+    startProcessing: appWindow.isMainWindow,
+  );
 
   WindowManager.register();
   WindowHelper.init(container.read(settingsRepositoryProvider));

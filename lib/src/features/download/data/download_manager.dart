@@ -27,9 +27,24 @@ class DownloadManager {
   final Set<String> _activeTaskIds = {};
   bool _isProcessing = false;
 
-  Stream<List<DownloadTask>> get tasksStream async* {
-    yield allTasks;
-    yield* _taskController.stream;
+  Stream<List<DownloadTask>> get tasksStream {
+    // Return a stream that starts with current value then follows updates
+    final controller = StreamController<List<DownloadTask>>();
+    controller.add(allTasks);
+
+    // Use a subscription to Pipe _taskController events to the new controller
+    final subscription = _taskController.stream.listen((tasks) {
+      if (!controller.isClosed) {
+        controller.add(tasks);
+      }
+    });
+
+    controller.onCancel = () {
+      subscription.cancel();
+      controller.close();
+    };
+
+    return controller.stream;
   }
 
   List<DownloadTask> get allTasks => _tasks.values.toList();
@@ -46,18 +61,59 @@ class DownloadManager {
   List<DownloadTask> get completedTasks =>
       _tasks.values.where((t) => t.status == DownloadStatus.completed).toList();
 
+  bool _isInitialized = false;
+
   /// Initialize manager and load persisted tasks
-  Future<void> initialize(db.AppDatabase db) async {
+  Future<void> initialize(
+    db.AppDatabase db, {
+    bool startProcessing = false,
+  }) async {
+    if (_isInitialized) {
+      if (startProcessing && !_isProcessing) {
+        _startProcessing();
+      }
+      return;
+    }
+    _isInitialized = true;
+
     _db = db;
     _settingsRepo = SettingsRepository(db);
     _downloadService.initialize(db);
 
     // Load max concurrent downloads from settings
-    final settings = await _settingsRepo.getSettings();
-    _maxConcurrentTasks = settings.maxConcurrentDownloads;
+    try {
+      final settings = await _settingsRepo.getSettings();
+      _maxConcurrentTasks = settings.maxConcurrentDownloads;
+    } catch (e) {
+      if (kDebugMode) print('DownloadManager: Error loading settings: $e');
+    }
 
     await _loadTasks();
-    _startProcessing();
+
+    if (startProcessing) {
+      _startProcessing();
+    } else {
+      _listenToDbChanges();
+    }
+  }
+
+  void _listenToDbChanges() {
+    if (kDebugMode) print('DownloadManager: Starting to listen for DB changes');
+    _db.select(_db.downloadTasks).watch().listen((rows) {
+      if (!_isProcessing) {
+        if (kDebugMode) {
+          print(
+            'DownloadManager: DB update received, sync ${rows.length} tasks',
+          );
+        }
+        _tasks.clear();
+        for (final r in rows) {
+          final domainTask = r.toDomain();
+          _tasks[domainTask.taskId] = domainTask;
+        }
+        _notifyUpdate();
+      }
+    });
   }
 
   /// Add a new download task
@@ -262,11 +318,9 @@ class DownloadManager {
         }
       }
 
-      if (task.id != null) {
-        await (_db.delete(
-          _db.downloadTasks,
-        )..where((t) => t.id.equals(task.id!))).go();
-      }
+      await (_db.delete(
+        _db.downloadTasks,
+      )..where((t) => t.id.equals(task.id))).go();
 
       _tasks.remove(taskId);
       _notifyUpdate();
@@ -530,6 +584,9 @@ class DownloadManager {
 
   /// Notify listeners of task updates
   void _notifyUpdate() {
+    if (kDebugMode) {
+      print('DownloadManager: Notifying update with ${allTasks.length} tasks');
+    }
     _taskController.add(allTasks);
   }
 
