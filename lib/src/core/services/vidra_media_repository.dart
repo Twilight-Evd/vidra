@@ -89,7 +89,8 @@ class VidraMediaRepository implements MediaRepository {
     // 1. Fast check: if position change is less than 1 second, skip (Fast check)
     final cacheKey = "${videoId}_${history.index}";
     final lastPos = _lastSavedPosition[cacheKey] ?? 0;
-    if ((history.positionMillis - lastPos).abs() < 1000) {
+    if (history.positionMillis > 0 &&
+        (history.positionMillis - lastPos).abs() < 1000) {
       return;
     }
 

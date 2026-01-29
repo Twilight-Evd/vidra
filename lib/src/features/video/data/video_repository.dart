@@ -266,10 +266,6 @@ class VideoRepository {
         .into(_db.videoHistory)
         .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
 
-    // ignore: avoid_print
-    print(
-      'VideoRepository: saved VideoHistory id=$id (input id was ${history.id})',
-    );
     history.id = id;
   }
 
@@ -363,10 +359,6 @@ class VideoRepository {
         .into(_db.episodeHistory)
         .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
 
-    // ignore: avoid_print
-    print(
-      'VideoRepository: saved EpisodeHistory id=$id (input id was ${history.id})',
-    );
     history.id = id;
   }
 
