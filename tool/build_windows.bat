@@ -9,7 +9,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [2/3] Building Windows release...
-call flutter build windows --release --no-obfuscate
+call flutter build windows --release
 set BUILD_ERROR=%errorlevel%
 
 echo [3/3] Disabling fonts (cleanup)...

@@ -45,39 +45,65 @@ Future<void> _runApp() async {
 
   // 2. Data layers
   final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open([
-    VideoSchema,
-    VideoSettingsSchema,
-    VideoHistorySchema,
-    EpisodeHistorySchema,
-    DownloadTaskSchema,
-    AppSettingsSchema,
-  ], directory: dir.path);
+
+  // Retry logic for Isar initialization to handle MDBX resource contention
+  // This fixes "MdbxError: Cannot decode error message" in release mode
+  Isar? isar;
+  int retryCount = 0;
+  const maxRetries = 3;
+
+  while (isar == null && retryCount < maxRetries) {
+    try {
+      isar = await Isar.open([
+        VideoSchema,
+        VideoSettingsSchema,
+        VideoHistorySchema,
+        EpisodeHistorySchema,
+        DownloadTaskSchema,
+        AppSettingsSchema,
+      ], directory: dir.path);
+    } catch (e) {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        // If all retries fail, try to clean up and rethrow
+        debugPrint('Failed to open Isar after $maxRetries attempts: $e');
+        rethrow;
+      }
+      // Wait before retry to allow system resources to become available
+      debugPrint(
+        'Isar open failed (attempt $retryCount/$maxRetries), retrying in 500ms: $e',
+      );
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  // Assert non-null after retry loop
+  final isarInstance = isar!;
 
   if (appWindow.isMainWindow) {
-    await isar.writeTxn(() async {
-      final settings = await isar.appSettings.get(0);
+    await isarInstance.writeTxn(() async {
+      final settings = await isarInstance.appSettings.get(0);
       if (settings == null) {
-        await isar.appSettings.put(AppSettings());
+        await isarInstance.appSettings.put(AppSettings());
       }
     });
   }
 
-  final appSettings = await isar.appSettings.get(0);
+  final appSettings = await isarInstance.appSettings.get(0);
   final initialDataSourceId = appSettings?.lastDataSourceId ?? 'mock';
   final savedLocale = appSettings?.locale;
 
   final container = ProviderContainer(
     overrides: [
-      isarProvider.overrideWithValue(isar),
+      isarProvider.overrideWithValue(isarInstance),
       initialDataSourceIdProvider.overrideWithValue(initialDataSourceId),
     ],
   );
 
   // 3. Services initialization
   if (appWindow.isMainWindow) {
-    await DownloadManager().initialize(isar);
-    DownloadService().initialize(isar);
+    await DownloadManager().initialize(isarInstance);
+    DownloadService().initialize(isarInstance);
     // Services.initFFmpeg();
   }
 
