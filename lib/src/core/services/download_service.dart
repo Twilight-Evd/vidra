@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'm3u8_downloader.dart';
 import '../../features/settings/data/settings_repository.dart';
-import '../../../data/database/app_database.dart'; // Relative: ../../../data/database...
+import '../../data/database/app_database.dart'; // Relative: ../../../data/database...
 
 class DownloadService {
   final M3U8Downloader _downloader = M3U8Downloader(maxConcurrentDownloads: 5);

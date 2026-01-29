@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
 
-import '../../../data/database/app_database_provider.dart';
-import '../../../data/database/mappers.dart';
+import '../../data/database/app_database_provider.dart';
+import '../../data/database/mappers.dart';
 import '../../features/settings/domain/app_settings.dart' as domain;
 
 // Provider for initial value (overridden in main.dart)

@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart'; // For Value, OrderingTerm, etc.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../data/database/app_database.dart' as db;
-import '../../../../data/database/app_database_provider.dart';
-import '../../../../data/database/mappers.dart';
+import '../../../data/database/app_database.dart' as db;
+import '../../../data/database/app_database_provider.dart';
+import '../../../data/database/mappers.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/services/video_thumbnail_service.dart';
 import '../domain/video_collection.dart';

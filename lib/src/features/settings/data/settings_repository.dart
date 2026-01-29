@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../src/core/utils/path.dart'; // ../../../../ = lib. lib/src/core...
-import '../../../../data/database/app_database.dart' hide AppSettings;
-import '../../../../data/database/mappers.dart';
+import '../../../data/database/app_database.dart' hide AppSettings;
+import '../../../data/database/mappers.dart';
 import '../domain/app_settings.dart';
 
 class SettingsRepository {

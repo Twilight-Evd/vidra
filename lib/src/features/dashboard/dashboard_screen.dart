@@ -4,19 +4,21 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vidra/src/features/dashboard/widgets/titlebar.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../video/presentation/play_history_provider.dart';
 import 'widgets/sidebar.dart';
 import 'domain/app_navigation_item.dart';
+import 'package:vidra/src/features/dashboard/widgets/titlebar.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
   const DashboardScreen({super.key, required this.navigationShell});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
@@ -76,6 +78,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _onDestinationSelected(BuildContext context, int index) {
     final item = AppNavigationItem.fromBranchIndex(index);
     if (item != null) {
+      if (item == AppNavigationItem.recent) {
+        // Force refresh recent list whenever navigating to it
+        ref.invalidate(playHistoryProvider);
+      }
       widget.navigationShell.goBranch(
         item.branchIndex,
         initialLocation: index == widget.navigationShell.currentIndex,

@@ -17,9 +17,9 @@ import 'src/routing/app_router.dart';
 import 'src/features/settings/presentation/settings_provider.dart';
 import 'src/features/download/data/download_manager.dart';
 
-import 'data/database/app_database.dart';
-import 'data/database/app_database_provider.dart';
-import 'data/database/mappers.dart';
+import 'src/data/database/app_database.dart';
+import 'src/data/database/app_database_provider.dart';
+import 'src/data/database/mappers.dart';
 
 Future<void> main() async {
   await _runApp();
@@ -40,8 +40,6 @@ Future<void> _runApp() async {
 
   // 2. Data layers
   final database = AppDatabase();
-
-  // Migration from Isar - Removed
 
   if (appWindow.isMainWindow) {
     await database.transaction(() async {

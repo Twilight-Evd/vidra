@@ -34,6 +34,7 @@ class VideoPlayerScreen extends ConsumerStatefulWidget {
 class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
     with TickerProviderStateMixin {
   PlayerController? _controller;
+  VidraMediaRepository? _mediaRepository;
   bool _isClosing = false;
 
   @override
@@ -136,6 +137,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
 
     WakelockPlus.disable();
     _controller?.dispose();
+    _mediaRepository?.dispose();
   }
 
   Future<void> _handleSafeClose() async {
@@ -218,15 +220,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
               locale: currentVidraLocale,
             );
 
+            _mediaRepository = VidraMediaRepository(
+              ref.read(videoRepositoryProvider),
+            );
+
             _controller = PlayerController(
               config: config,
               video: _mapMetadata(video),
               episodes: episodes,
               player: VideoPlayerAdapter(),
               windowDelegate: BitsdojoWindowDelegate(),
-              mediaRepository: VidraMediaRepository(
-                ref.read(videoRepositoryProvider),
-              ),
+              mediaRepository: _mediaRepository,
               // performanceMonitor:
               //     SentryPlayerMonitor(), // Enable Sentry monitoring
             );

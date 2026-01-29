@@ -9,16 +9,27 @@ import '../../features/video/domain/video_settings.dart' as domain;
 class _HistoryThrottler {
   final Duration _duration;
   Timer? _timer;
+  void Function()? _pendingAction;
 
   _HistoryThrottler(this._duration);
 
   void run(void Function() action) {
+    _pendingAction = action;
     if (_timer?.isActive ?? false) return;
-    _timer = Timer(_duration, action);
+    _timer = Timer(_duration, () {
+      _pendingAction?.call();
+      _pendingAction = null;
+    });
+  }
+
+  void flush() {
+    _timer?.cancel();
+    _pendingAction?.call();
+    _pendingAction = null;
   }
 
   void dispose() {
-    _timer?.cancel();
+    flush();
   }
 }
 

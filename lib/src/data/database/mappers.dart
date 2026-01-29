@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart';
 import 'app_database.dart' as db; // Same directory
-import '../../src/features/video/domain/video_collection.dart' as domain;
-import '../../src/features/video/domain/video_settings.dart' as domain;
-import '../../src/features/video/domain/play_history.dart' as domain;
-import '../../src/features/download/domain/download_task.dart' as domain;
-import '../../src/features/settings/domain/app_settings.dart' as domain;
+import '../../features/video/domain/video_collection.dart' as domain;
+import '../../features/video/domain/video_settings.dart' as domain;
+import '../../features/video/domain/play_history.dart' as domain;
+import '../../features/download/domain/download_task.dart' as domain;
+import '../../features/settings/domain/app_settings.dart' as domain;
 
 // --- Video ---
 extension VideoMapper on db.Video {
