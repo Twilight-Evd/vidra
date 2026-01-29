@@ -54,14 +54,19 @@ Future<void> _runApp() async {
 
   while (isar == null && retryCount < maxRetries) {
     try {
-      isar = await Isar.open([
-        VideoSchema,
-        VideoSettingsSchema,
-        VideoHistorySchema,
-        EpisodeHistorySchema,
-        DownloadTaskSchema,
-        AppSettingsSchema,
-      ], directory: dir.path);
+      isar = await Isar.open(
+        [
+          VideoSchema,
+          VideoSettingsSchema,
+          VideoHistorySchema,
+          EpisodeHistorySchema,
+          DownloadTaskSchema,
+          AppSettingsSchema,
+        ],
+        directory: dir.path,
+        inspector: false,
+        relaxedDurability: true,
+      );
     } catch (e) {
       retryCount++;
       if (retryCount >= maxRetries) {
