@@ -3,7 +3,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fvp/fvp.dart' as fvp;
 import 'package:drift/drift.dart';
 
 import 'src/core/utils/window.dart';
@@ -33,7 +32,7 @@ Future<void> _runApp() async {
   PaintingBinding.instance.imageCache.maximumSize = 50;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 30 * 1024 * 1024;
   try {
-    fvp.registerWith();
+    // fvp.registerWith();
   } catch (e) {
     debugPrint('Error registering fvp: $e');
   }

@@ -251,11 +251,15 @@ class _PopularVideoCardState extends ConsumerState<PopularVideoCard>
                       ),
                       const Spacer(),
                       if (widget.video.remarks != null)
-                        Text(
-                          widget.video.remarks!, // e.g. "更新至第05集"
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                        Flexible(
+                          child: Text(
+                            widget.video.remarks!, // e.g. "更新至第05集"
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                     ],

@@ -6,11 +6,25 @@ import '../domain/video_collection.dart';
 import 'package:vidra/src/features/video/presentation/widgets/cards/video_cards.dart';
 import '../../../common/skeleton/video_card_skeleton.dart';
 
-class RecentListScreen extends ConsumerWidget {
+class RecentListScreen extends ConsumerStatefulWidget {
   const RecentListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecentListScreen> createState() => _RecentListScreenState();
+}
+
+class _RecentListScreenState extends ConsumerState<RecentListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Manual refresh when entering the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(playHistoryProvider.notifier).manualRefresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(playHistoryProvider);
 
     return Scaffold(
@@ -22,9 +36,8 @@ class RecentListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(playHistoryProvider);
-            },
+            onPressed: () =>
+                ref.read(playHistoryProvider.notifier).manualRefresh(),
             tooltip: tr('common.refresh'),
           ),
           TextButton(
@@ -62,52 +75,52 @@ class RecentListScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final item = history[index];
 
-              // Map VideoHistory to Video model for PopularVideoCard
-              final video = Video()
-                ..apiId = item.videoId
-                ..title = item.videoTitle
-                ..coverUrl = item.coverUrl
-                ..rating = double.tryParse(item.rating ?? '') ?? 0.0
-                ..type = item.type
-                ..region = item.region
-                ..year = item.year
-                ..actor = item.actor
-                ..version = item.version
-                ..hits = item.hits
-                ..remarks = item.remarks
-                ..blurb = item.blurb
-                ..sourceId = item.sourceId;
+              try {
+                // Map VideoHistory to Video model for PopularVideoCard
+                final video = Video()
+                  ..apiId = item.videoId
+                  ..title = item.videoTitle
+                  ..coverUrl = item.coverUrl
+                  ..rating = double.tryParse(item.rating ?? '') ?? 0.0
+                  ..type = item.type
+                  ..region = item.region
+                  ..year = item.year
+                  ..actor = item.actor
+                  ..version = item.version
+                  ..hits = item.hits
+                  ..remarks = item.remarks
+                  ..blurb = item.blurb
+                  ..sourceId = item.sourceId;
 
-              return Stack(
-                children: [
-                  PopularVideoCard(video: video),
-                  // Optional: Overlay for episode info or delete button if desired
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 16,
+                return Stack(
+                  key: ValueKey('history_${item.id}'),
+                  children: [
+                    PopularVideoCard(video: video),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.black45,
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () {
+                          ref
+                              .read(playHistoryProvider.notifier)
+                              .deleteVideoHistory(item.id);
+                        },
                       ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.black45,
-                        padding: EdgeInsets.zero,
-                        // constraints: const BoxConstraints(
-                        //   minWidth: 24,
-                        //   minHeight: 24,
-                        // ),
-                      ),
-                      onPressed: () {
-                        ref
-                            .read(playHistoryProvider.notifier)
-                            .deleteVideoHistory(item.id);
-                      },
                     ),
-                  ),
-                ],
-              );
+                  ],
+                );
+              } catch (e) {
+                return const SizedBox.shrink();
+              }
             },
           );
         },

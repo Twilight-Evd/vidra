@@ -18,11 +18,27 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     appWindow.onClose = _handleClose;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When the main window gains focus again (e.g. after closing the player window)
+    if (state == AppLifecycleState.resumed) {
+      ref.read(playHistoryProvider.notifier).manualRefresh();
+    }
   }
 
   bool _isExitDialogShowing = false;
@@ -80,7 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (item != null) {
       if (item == AppNavigationItem.recent) {
         // Force refresh recent list whenever navigating to it
-        ref.invalidate(playHistoryProvider);
+        ref.read(playHistoryProvider.notifier).manualRefresh();
       }
       widget.navigationShell.goBranch(
         item.branchIndex,

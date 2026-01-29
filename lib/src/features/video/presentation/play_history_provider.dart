@@ -18,16 +18,21 @@ final episodeHistoriesProvider = FutureProvider.autoDispose
     });
 
 final playHistoryProvider =
-    StreamNotifierProvider.autoDispose<PlayHistoryNotifier, List<VideoHistory>>(
+    AsyncNotifierProvider<PlayHistoryNotifier, List<VideoHistory>>(
       PlayHistoryNotifier.new,
     );
 
-class PlayHistoryNotifier extends StreamNotifier<List<VideoHistory>> {
+class PlayHistoryNotifier extends AsyncNotifier<List<VideoHistory>> {
   VideoRepository get _repository => ref.watch(videoRepositoryProvider);
 
   @override
-  Stream<List<VideoHistory>> build() {
-    return _repository.watchAllVideoHistory();
+  Future<List<VideoHistory>> build() async {
+    return await _repository.getAllVideoHistory();
+  }
+
+  Future<void> manualRefresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => build());
   }
 
   Future<void> saveVideoHistory(VideoHistory history) async {
@@ -41,6 +46,7 @@ class PlayHistoryNotifier extends StreamNotifier<List<VideoHistory>> {
   Future<void> deleteVideoHistory(int id) async {
     try {
       await _repository.deleteVideoHistory(id);
+      await manualRefresh();
     } catch (e) {
       logR('PlayHistory', 'Error deleting video history: $e');
     }
@@ -49,6 +55,7 @@ class PlayHistoryNotifier extends StreamNotifier<List<VideoHistory>> {
   Future<void> clearHistory() async {
     try {
       await _repository.clearAllHistory();
+      await manualRefresh();
     } catch (e) {
       logR('PlayHistory', 'Error clearing history: $e');
     }
