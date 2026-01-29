@@ -45,6 +45,7 @@ Future<void> _runApp() async {
 
   // 2. Data layers
   final dir = await getApplicationDocumentsDirectory();
+  await Isar.initializeIsarCore(download: true);
 
   // Retry logic for Isar initialization to handle MDBX resource contention
   // This fixes "MdbxError: Cannot decode error message" in release mode
