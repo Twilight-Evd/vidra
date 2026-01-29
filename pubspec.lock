@@ -1276,7 +1276,7 @@ packages:
     description:
       path: "."
       ref: "v0.0.1"
-      resolved-ref: "07eacb31b4116811b4c17f0511780ab7fa6a3b74"
+      resolved-ref: "65119f36eadc5102a9b8215fc53fba4c3aa279d0"
       url: "https://github.com/Twilight-Evd/vidra_player.git"
     source: git
     version: "0.0.1"
