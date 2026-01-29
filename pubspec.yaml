@@ -40,7 +40,6 @@ dependencies:
   archive: ^4.0.7
   path: ^1.9.1
   easy_localization: ^3.0.8
-  sentry_flutter: ^9.10.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0
