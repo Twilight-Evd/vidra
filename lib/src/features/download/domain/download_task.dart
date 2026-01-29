@@ -1,7 +1,3 @@
-import 'package:isar/isar.dart';
-
-part 'download_task.g.dart';
-
 /// Download task status
 enum DownloadStatus {
   queued,
@@ -13,13 +9,11 @@ enum DownloadStatus {
 }
 
 /// Individual episode download info
-@embedded
 class EpisodeDownloadInfo {
   final int? index;
   final String? title;
   final String? url;
   final String? outputPath;
-  @enumerated
   final DownloadStatus status;
   final double progress; // 0.0 to 1.0
   final int bytesDownloaded;
@@ -111,14 +105,11 @@ class EpisodeDownloadInfo {
 }
 
 /// Download task for a video (can contain multiple episodes)
-@collection
 class DownloadTask {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
-  @Index(unique: true, replace: true)
   late String taskId;
 
-  @Index()
   late int videoId;
 
   late String videoTitle;
@@ -138,7 +129,6 @@ class DownloadTask {
   });
 
   /// Overall task status
-  @ignore
   DownloadStatus get status {
     if (episodes.isEmpty) return DownloadStatus.queued;
 
@@ -172,7 +162,6 @@ class DownloadTask {
   }
 
   /// Overall progress (0.0 to 1.0)
-  @ignore
   double get progress {
     if (episodes.isEmpty) return 0.0;
     final totalProgress = episodes.fold<double>(
@@ -183,7 +172,6 @@ class DownloadTask {
   }
 
   /// Total bytes downloaded across all episodes
-  @ignore
   int get totalBytesDownloaded {
     return episodes.fold<int>(
       0,
@@ -192,13 +180,11 @@ class DownloadTask {
   }
 
   /// Total bytes across all episodes
-  @ignore
   int get totalBytes {
     return episodes.fold<int>(0, (sum, episode) => sum + episode.totalBytes);
   }
 
   /// Estimated time remaining in seconds
-  @ignore
   int? get estimatedTimeRemaining {
     final downloadingEpisodes = episodes.where(
       (e) => e.status == DownloadStatus.downloading && e.startTime != null,
@@ -220,7 +206,6 @@ class DownloadTask {
   }
 
   /// Download speed in bytes per second
-  @ignore
   double? get downloadSpeed {
     final downloadingEpisodes = episodes.where(
       (e) => e.status == DownloadStatus.downloading && e.startTime != null,

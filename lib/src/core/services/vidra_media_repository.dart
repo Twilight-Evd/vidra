@@ -41,7 +41,10 @@ class VidraMediaRepository implements MediaRepository {
     if (parts.length >= 2) {
       final apiId = int.tryParse(parts[0]) ?? -1;
       final sourceStr = parts.sublist(1).join('_');
-      final sourceId = String.fromCharCodes(sourceStr.codeUnits);
+      // If the source string is literally "null", treat it as null
+      final sourceId = (sourceStr == "null" || sourceStr.isEmpty)
+          ? null
+          : sourceStr;
       return (apiId: apiId, sourceId: sourceId);
     }
     return (apiId: int.tryParse(videoId) ?? -1, sourceId: null);

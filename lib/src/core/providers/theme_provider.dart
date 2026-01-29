@@ -17,9 +17,11 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     final initial = ref.watch(initialThemeModeProvider);
 
     // Watch for changes in AppSettings
-    final subscription = db.select(db.appSettings).watchSingleOrNull().listen((
-      settingsData,
+    // Using watch().first as a robust alternative if needed, but watchSingleOrNull should be fine with limit(1)
+    final subscription = (db.select(db.appSettings)..limit(1)).watch().listen((
+      list,
     ) {
+      final settingsData = list.isEmpty ? null : list.first;
       if (settingsData != null) {
         final newMode = ThemeMode.values[settingsData.themeMode];
         if (state != newMode) {
@@ -36,7 +38,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     final db = ref.read(appDatabaseProvider);
 
     await db.transaction(() async {
-      final existing = await db.select(db.appSettings).getSingleOrNull();
+      // Robust loading
+      final list = await (db.select(db.appSettings)..limit(1)).get();
+      final existing = list.isEmpty ? null : list.first;
       var settings = existing != null
           ? existing.toDomain()
           : domain.AppSettings();
@@ -47,7 +51,6 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
           .into(db.appSettings)
           .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
     });
-    // state update is handled by listener usually, but optimistic update is fine
     state = mode;
   }
 

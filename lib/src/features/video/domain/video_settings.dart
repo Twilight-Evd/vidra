@@ -1,12 +1,6 @@
-import 'package:isar/isar.dart';
-
-part 'video_settings.g.dart';
-
-@collection
 class VideoSettings {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
-  @Index(composite: [CompositeIndex('videoId')], unique: true, replace: true)
   String? sourceId;
 
   late int videoId;

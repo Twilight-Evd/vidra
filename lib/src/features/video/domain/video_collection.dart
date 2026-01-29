@@ -1,17 +1,10 @@
-import 'package:isar/isar.dart';
-
-part 'video_collection.g.dart';
-
-@collection
 class Video {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
-  @Index(composite: [CompositeIndex('apiId')], unique: true, replace: true)
   String? sourceId; // Track which data source this video came from
 
   late int apiId; // The ID provided by the data source
 
-  @Index(type: IndexType.value)
   late String title; // mapped from 'name'
 
   late String coverUrl; // mapped from 'pic'
@@ -24,11 +17,10 @@ class Video {
 
   String? year; // API returns string "2025"
 
-  @Index()
   String? region; // mapped from 'area'
 
-  @Index()
-  late String type; // We might need to map typeId to 'movie' or 'series' string, or just keep typeId
+  late String
+  type; // We might need to map typeId to 'movie' or 'series' string, or just keep typeId
 
   // API provided fields
   int? typeId;
@@ -55,7 +47,6 @@ class Video {
   Video();
 }
 
-@embedded
 class VideoQuality {
   String? name;
   String? url;
@@ -70,7 +61,6 @@ class VideoQuality {
   }
 }
 
-@embedded
 class VideoEpisode {
   int? index;
   String? title;

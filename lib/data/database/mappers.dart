@@ -44,7 +44,7 @@ extension VideoMapper on db.Video {
 extension VideoCompanionMapper on domain.Video {
   db.VideosCompanion toCompanion() {
     return db.VideosCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       sourceId: Value(sourceId),
       apiId: apiId,
       title: title,
@@ -90,7 +90,7 @@ extension VideoSettingMapper on db.VideoSetting {
 extension VideoSettingsCompanionMapper on domain.VideoSettings {
   db.VideoSettingsCompanion toCompanion() {
     return db.VideoSettingsCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       sourceId: Value(sourceId),
       videoId: videoId,
       introDuration: Value(introDuration),
@@ -126,7 +126,7 @@ extension VideoHistoryMapper on db.VideoHistoryData {
 extension VideoHistoryCompanionMapper on domain.VideoHistory {
   db.VideoHistoryCompanion toCompanion() {
     return db.VideoHistoryCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       sourceId: Value(sourceId),
       videoId: videoId,
       videoTitle: videoTitle,
@@ -168,7 +168,7 @@ extension AppSettingMapper on db.AppSetting {
 extension AppSettingsCompanionMapper on domain.AppSettings {
   db.AppSettingsCompanion toCompanion() {
     return db.AppSettingsCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       downloadPath: Value(downloadPath),
       enableThumbnailPreview: Value(enableThumbnailPreview),
       maxConcurrentDownloads: Value(maxConcurrentDownloads),
@@ -200,7 +200,7 @@ extension EpisodeHistoryMapper on db.EpisodeHistoryData {
 extension EpisodeHistoryCompanionMapper on domain.EpisodeHistory {
   db.EpisodeHistoryCompanion toCompanion() {
     return db.EpisodeHistoryCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       sourceId: Value(sourceId),
       videoId: videoId,
       episodeIndex: episodeIndex,
@@ -229,7 +229,7 @@ extension DownloadTaskMapper on db.DownloadTask {
 extension DownloadTaskCompanionMapper on domain.DownloadTask {
   db.DownloadTasksCompanion toCompanion() {
     return db.DownloadTasksCompanion.insert(
-      id: Value(id),
+      id: id == 0 ? const Value.absent() : Value(id),
       taskId: taskId,
       videoId: videoId,
       videoTitle: videoTitle,

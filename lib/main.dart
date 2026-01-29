@@ -19,7 +19,6 @@ import 'src/features/download/data/download_manager.dart';
 
 import 'data/database/app_database.dart';
 import 'data/database/app_database_provider.dart';
-import 'data/database/data_migration.dart';
 import 'data/database/mappers.dart';
 
 Future<void> main() async {
@@ -42,15 +41,19 @@ Future<void> _runApp() async {
   // 2. Data layers
   final database = AppDatabase();
 
-  // Migration from Isar
-  await migrateFromIsar(database);
+  // Migration from Isar - Removed
 
   if (appWindow.isMainWindow) {
     await database.transaction(() async {
-      final s = await (database.select(
+      // Use get().then to be 100% safe against duplicates
+      final settingsList = await (database.select(
         database.appSettings,
-      )..limit(1)).getSingleOrNull();
+      )..limit(1)).get();
+      final s = settingsList.isEmpty ? null : settingsList.first;
+
       if (s == null) {
+        // AppSettingsCompanion.insert() by default has id as Value.absent()
+        // so it will auto-increment to 1.
         await database
             .into(database.appSettings)
             .insert(
@@ -62,9 +65,11 @@ Future<void> _runApp() async {
   }
 
   // Read settings for initial config
-  final appSettingsData = await database
-      .select(database.appSettings)
-      .getSingleOrNull();
+  // More robust way to get exactly one or null
+  final settingsList = await (database.select(
+    database.appSettings,
+  )..limit(1)).get();
+  final appSettingsData = settingsList.isEmpty ? null : settingsList.first;
   final appSettings = appSettingsData?.toDomain();
 
   final initialDataSourceId = appSettings?.lastDataSourceId ?? 'mock';

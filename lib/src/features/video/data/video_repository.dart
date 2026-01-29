@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:drift/drift.dart'; // For Value, OrderingTerm, etc.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/database/app_database.dart' as db;
@@ -42,9 +40,10 @@ class DataSourceIdNotifier extends Notifier<String> {
     await database.transaction(() async {
       // Find existing settings or create default
       // Usually only 1 row for AppSettings.
-      final existing = await database
-          .select(database.appSettings)
-          .getSingleOrNull();
+      final list = await (database.select(
+        database.appSettings,
+      )..limit(1)).get();
+      final existing = list.isEmpty ? null : list.first;
       var settings = existing != null ? existing.toDomain() : AppSettings();
 
       settings.lastDataSourceId = id;
@@ -95,7 +94,8 @@ class VideoRepository {
 
   // App Settings
   Future<AppSettings> getAppSettings() async {
-    final s = await _db.select(_db.appSettings).getSingleOrNull();
+    final list = await (_db.select(_db.appSettings)..limit(1)).get();
+    final s = list.isEmpty ? null : list.first;
     return s?.toDomain() ?? AppSettings();
   }
 
@@ -107,12 +107,14 @@ class VideoRepository {
 
   Future<void> updateLastDataSource(String sourceId) async {
     await _db.transaction(() async {
-      final existing = await _db.select(_db.appSettings).getSingleOrNull();
+      final list = await (_db.select(_db.appSettings)..limit(1)).get();
+      final existing = list.isEmpty ? null : list.first;
       var settings = existing?.toDomain() ?? AppSettings();
       settings.lastDataSourceId = sourceId;
-      await _db
+      final id = await _db
           .into(_db.appSettings)
           .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
+      settings.id = id;
     });
   }
 
@@ -170,6 +172,7 @@ class VideoRepository {
     final ds = _getDataSource(sid);
     final video = await ds.getVideoDetail(apiId);
     if (video != null) {
+      video.sourceId = sid; // Ensure sourceId is set for the local DB
       // 2. Save to DB
       try {
         await _db.transaction(() async {
@@ -183,9 +186,10 @@ class VideoRepository {
             video.id = existing.id; // Preserve Local ID
           }
 
-          await _db
+          final newId = await _db
               .into(_db.videos)
               .insert(video.toCompanion(), mode: InsertMode.insertOrReplace);
+          video.id = newId;
         });
       } catch (e) {}
     }
@@ -211,9 +215,10 @@ class VideoRepository {
   }
 
   Future<void> saveVideoSettings(VideoSettings settings) async {
-    await _db
+    final id = await _db
         .into(_db.videoSettings)
         .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
+    settings.id = id;
   }
 
   // Video History (for "Recent" list)
@@ -248,14 +253,24 @@ class VideoRepository {
   }
 
   Future<void> saveVideoHistory(VideoHistory history) async {
-    final existing = await getVideoHistory(history.videoId, history.sourceId);
+    // Normalize sourceId before saving
+    final sid = history.sourceId ?? _defaultDataSource.id;
+    history.sourceId = sid;
+
+    final existing = await getVideoHistory(history.videoId, sid);
     if (existing != null) {
       history.id = existing.id;
     }
 
-    await _db
+    final id = await _db
         .into(_db.videoHistory)
         .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
+
+    // ignore: avoid_print
+    print(
+      'VideoRepository: saved VideoHistory id=$id (input id was ${history.id})',
+    );
+    history.id = id;
   }
 
   Future<void> deleteVideoHistory(int id) async {
@@ -331,18 +346,28 @@ class VideoRepository {
   }
 
   Future<void> saveEpisodeHistory(EpisodeHistory history) async {
+    // Normalize sourceId before saving
+    final sid = history.sourceId ?? _defaultDataSource.id;
+    history.sourceId = sid;
+
     final existing = await getEpisodeHistory(
       history.videoId,
       history.episodeIndex,
-      history.sourceId,
+      sid,
     );
     if (existing != null) {
       history.id = existing.id;
     }
 
-    await _db
+    final id = await _db
         .into(_db.episodeHistory)
         .insert(history.toCompanion(), mode: InsertMode.insertOrReplace);
+
+    // ignore: avoid_print
+    print(
+      'VideoRepository: saved EpisodeHistory id=$id (input id was ${history.id})',
+    );
+    history.id = id;
   }
 
   Future<void> deleteEpisodeHistory(

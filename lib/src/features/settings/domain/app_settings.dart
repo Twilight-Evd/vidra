@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 
-part 'app_settings.g.dart';
-
-@collection
 class AppSettings {
-  Id id = 0; // Singleton, always use id = 0
+  int id = 0; // Singleton, always use id = 0
 
   // Download settings
   String? downloadPath; // null = use default (Downloads folder)
@@ -18,7 +14,6 @@ class AppSettings {
 
   String? lastDataSourceId;
 
-  @enumerated
   ThemeMode themeMode;
 
   // Window sizes

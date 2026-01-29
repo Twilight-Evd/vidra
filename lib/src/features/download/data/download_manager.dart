@@ -552,9 +552,10 @@ class DownloadManager {
     if (!_tasks.containsKey(task.taskId)) return;
 
     try {
-      await _db
+      final id = await _db
           .into(_db.downloadTasks)
           .insert(task.toCompanion(), mode: InsertMode.insertOrReplace);
+      task.id = id;
     } catch (e) {
       if (kDebugMode) {
         print('Error saving task to DB: $e');

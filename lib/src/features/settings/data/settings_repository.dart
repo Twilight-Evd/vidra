@@ -13,12 +13,14 @@ class SettingsRepository {
 
   /// Get current settings (creates default if not exists)
   Future<AppSettings> getSettings() async {
-    final s = await _db.select(_db.appSettings).getSingleOrNull();
+    final list = await (_db.select(_db.appSettings)..limit(1)).get();
+    final s = list.isEmpty ? null : list.first;
     if (s == null) {
       final newSettings = AppSettings();
-      await _db
+      final id = await _db
           .into(_db.appSettings)
           .insert(newSettings.toCompanion(), mode: InsertMode.insertOrReplace);
+      newSettings.id = id;
       return newSettings;
     }
     return s.toDomain();
@@ -27,9 +29,10 @@ class SettingsRepository {
   /// Update settings
   Future<void> updateSettings(AppSettings settings) async {
     // Ensure we use the correct ID or Singleton logic
-    await _db
+    final id = await _db
         .into(_db.appSettings)
         .insert(settings.toCompanion(), mode: InsertMode.insertOrReplace);
+    settings.id = id;
   }
 
   /// Update locale

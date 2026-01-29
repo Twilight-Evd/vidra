@@ -1,12 +1,6 @@
-import 'package:isar/isar.dart';
-
-part 'play_history.g.dart';
-
-@collection
 class VideoHistory {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
-  @Index(composite: [CompositeIndex('videoId')], unique: true, replace: true)
   String? sourceId;
 
   late int videoId;
@@ -28,7 +22,6 @@ class VideoHistory {
   late int lastEpisodeIndex;
   String? lastEpisodeTitle;
 
-  @Index()
   late DateTime updatedAt;
 
   VideoHistory();
@@ -52,15 +45,9 @@ class VideoHistory {
   }) : updatedAt = DateTime.now();
 }
 
-@collection
 class EpisodeHistory {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
-  @Index(
-    composite: [CompositeIndex('videoId'), CompositeIndex('episodeIndex')],
-    unique: true,
-    replace: true,
-  )
   String? sourceId;
 
   late int videoId;
@@ -70,7 +57,6 @@ class EpisodeHistory {
   late int positionMillis;
   late int durationMillis;
 
-  @Index()
   late DateTime updatedAt;
 
   EpisodeHistory();

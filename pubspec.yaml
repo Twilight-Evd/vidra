@@ -40,8 +40,6 @@ dependencies:
   easy_localization: ^3.0.8
   drift: ^2.30.1
   sqlite3_flutter_libs: ^0.5.41
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
 
 dev_dependencies:
   flutter_lints: ^6.0.0
