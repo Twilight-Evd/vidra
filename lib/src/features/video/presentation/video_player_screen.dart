@@ -249,12 +249,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
             if (_controller!.media.episodes.length != episodes.length) {
               _controller!.updateEpisodes(episodes);
             }
-
-            // Sync episode index if it differs
-            if (_controller!.media.currentEpisodeIndex !=
-                widget.initialEpisodeIndex) {
-              _controller!.switchEpisode(widget.initialEpisodeIndex);
-            }
           }
 
           return VideoPlayerWidget(controller: _controller!);

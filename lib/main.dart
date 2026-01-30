@@ -30,8 +30,6 @@ Future<void> _runApp() async {
   // 1. Core language and plugins
   await EasyLocalization.ensureInitialized();
 
-  PaintingBinding.instance.imageCache.maximumSize = 50;
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 30 * 1024 * 1024;
   try {
     fvp.registerWith();
   } catch (e) {
