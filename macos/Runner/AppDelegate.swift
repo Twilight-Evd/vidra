@@ -7,7 +7,7 @@ class AppDelegate: FlutterAppDelegate {
   private var isExiting = false
   private var windowCloseObserver: NSObjectProtocol?
   
-  override func applicationDidFinishLaunching(_ notification: Notification) {
+  @objc override func applicationDidFinishLaunching(_ notification: Notification) {
     cleanupObserver()
     
     windowCloseObserver = NotificationCenter.default.addObserver(
@@ -22,7 +22,6 @@ class AppDelegate: FlutterAppDelegate {
     }
     
     signal(SIGPIPE, SIG_IGN)
-    super.applicationDidFinishLaunching(notification)
   }
 
   private func cleanupObserver() {
@@ -32,12 +31,11 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
-  override func applicationWillTerminate(_ notification: Notification) {
+  @objc override func applicationWillTerminate(_ notification: Notification) {
     cleanupObserver()
-    super.applicationWillTerminate(notification)
   }
   
-  override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+  @objc override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     if isExiting {
       return .terminateNow
     }
@@ -48,11 +46,11 @@ class AppDelegate: FlutterAppDelegate {
     return .terminateNow
   }
   
-  override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+  @objc override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
   }
 
-  override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+  @objc override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
   }
 }
