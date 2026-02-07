@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'dart:io';
 
+import '../../core/utils/path.dart';
 import '../../features/video/domain/video_collection.dart';
 import '../../features/download/domain/download_task.dart';
 
@@ -244,8 +244,11 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'vidradb.sqlite'));
+    final dbFolder = await getApplicationSupportDirectory();
+    if (!dbFolder.existsSync()) {
+      await dbFolder.create(recursive: true);
+    }
+    final file = File(PathHelper.join(dbFolder.path, 'vidradb.sqlite'));
     return NativeDatabase.createInBackground(file);
   });
 }

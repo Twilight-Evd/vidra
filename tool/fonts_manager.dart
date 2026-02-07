@@ -1,15 +1,17 @@
 import 'dart:io';
 
+import 'package:vidra/src/core/utils/log.dart';
+
 void main(List<String> args) {
   final pubspecFile = File('pubspec.yaml');
   final fontsFile = File('pubspec_fonts.yaml');
 
   if (!pubspecFile.existsSync()) {
-    print('Error: pubspec.yaml not found.');
+    logR("Error", 'pubspec.yaml not found.');
     exit(1);
   }
   if (!fontsFile.existsSync()) {
-    print('Error: pubspec_fonts.yaml not found.');
+    logR("Error", 'pubspec_fonts.yaml not found.');
     exit(1);
   }
 
@@ -23,7 +25,7 @@ void main(List<String> args) {
   bool isEnabled = pubspecContent.contains(startMarker);
 
   if (args.isEmpty) {
-    print('Usage: dart tool/fonts_manager.dart [enable|disable]');
+    logR("Usage", 'dart tool/fonts_manager.dart [enable|disable]');
     return;
   }
 
@@ -31,7 +33,7 @@ void main(List<String> args) {
 
   if (command == 'enable') {
     if (isEnabled) {
-      print('Fonts are already enabled.');
+      logR("Fonts", 'Fonts are already enabled.');
       return;
     }
 
@@ -44,10 +46,10 @@ void main(List<String> args) {
 
     final newSection = '$startMarker\n$fontsContent\n$endMarker\n';
     pubspecFile.writeAsStringSync(pubspecContent + newSection);
-    print('Fonts enabled for Windows. (appended to pubspec.yaml)');
+    logR("Fonts", 'Fonts enabled for Windows. (appended to pubspec.yaml)');
   } else if (command == 'disable') {
     if (!isEnabled) {
-      print('Fonts are already disabled.');
+      logR("Fonts", 'Fonts are already disabled.');
       return;
     }
 
@@ -60,16 +62,17 @@ void main(List<String> args) {
 
     // Check match first to be sure
     if (!pattern.hasMatch(pubspecContent)) {
-      print(
-        'Error: Markers found but content pattern did not match. Please check pubspec.yaml manually.',
+      logR(
+        "Error",
+        'Markers found but content pattern did not match. Please check pubspec.yaml manually.',
       );
       exit(1);
     }
 
     final newContent = pubspecContent.replaceAll(pattern, '');
     pubspecFile.writeAsStringSync(newContent);
-    print('Fonts disabled settings removed from pubspec.yaml');
+    logR("Fonts", 'Fonts disabled settings removed from pubspec.yaml');
   } else {
-    print('Unknown command: $command. Use [enable|disable]');
+    logR("Usage", 'Unknown command: $command. Use [enable|disable]');
   }
 }

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart'; // For Value, OrderingTerm, etc.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/log.dart';
 import '../../../data/database/app_database.dart' as db;
 import '../../../data/database/app_database_provider.dart';
 import '../../../data/database/mappers.dart';
@@ -191,7 +192,9 @@ class VideoRepository {
               .insert(video.toCompanion(), mode: InsertMode.insertOrReplace);
           video.id = newId;
         });
-      } catch (e) {}
+      } catch (e) {
+        logR("getVideo", e.toString());
+      }
     }
     return video;
   }

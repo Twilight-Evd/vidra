@@ -74,7 +74,7 @@ class EpisodeItem extends ConsumerWidget {
             task.episodes.any((e) => e.index == originalIndex),
       ),
       loading: () => false,
-      error: (_, __) => false,
+      error: (_, _) => false,
     );
 
     return InkWell(
@@ -136,7 +136,10 @@ class EpisodeItem extends ConsumerWidget {
               'video.detail.download_added',
               args: [
                 episode.title ??
-                    "${tr('video.detail.episode_prefix', args: [(originalIndex + 1).toString()])}",
+                    tr(
+                      'video.detail.episode_prefix',
+                      args: [(originalIndex + 1).toString()],
+                    ),
               ],
             ),
           ),

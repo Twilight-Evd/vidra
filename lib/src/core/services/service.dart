@@ -4,6 +4,7 @@ import 'package:archive/archive_io.dart';
 
 import '../utils/file.dart';
 import '../utils/helper.dart';
+import '../utils/log.dart';
 import '../utils/path.dart';
 
 class Services {
@@ -19,7 +20,7 @@ class Services {
         extractFileToDisk(ffmpegZip, shellPath);
       }
     } catch (e) {
-      print(e);
+      logR("initFFmpeg", e.toString());
     }
   }
 }

@@ -4,7 +4,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
-import 'package:fvp/fvp.dart' as fvp;
+// import 'package:fvp/fvp.dart' as fvp;
 
 import 'src/core/utils/window.dart';
 import 'src/window/window_manager.dart';
@@ -30,11 +30,11 @@ Future<void> _runApp() async {
   // 1. Core language and plugins
   await EasyLocalization.ensureInitialized();
 
-  try {
-    fvp.registerWith();
-  } catch (e) {
-    debugPrint('Error registering fvp: $e');
-  }
+  // try {
+  //   fvp.registerWith();
+  // } catch (e) {
+  //   debugPrint('Error registering fvp: $e');
+  // }
 
   // 2. Data layers
   final database = AppDatabase();

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:vidra/src/core/utils/log.dart';
 
 /// M3U8 playlist parser
 class M3U8Parser {
@@ -261,7 +262,8 @@ class M3U8Downloader {
       final size = await file.length();
 
       if (kDebugMode && index % 10 == 0) {
-        print(
+        logR(
+          'Downloaded',
           'Downloaded segment $index: ${(size / 1024).toStringAsFixed(2)} KB',
         );
       }
@@ -269,7 +271,7 @@ class M3U8Downloader {
       return file;
     } catch (e) {
       if (kDebugMode) {
-        print('Error downloading segment $index from $url: $e');
+        logR("Downloaded", "Error downloading segment $index from $url: $e");
       }
       rethrow;
     }
@@ -292,14 +294,16 @@ class M3U8Downloader {
         totalBytes += bytes.length;
 
         if (kDebugMode && i % 50 == 0) {
-          print(
+          logR(
+            'Downloaded',
             'Merged ${i + 1}/${segmentFiles.length} segments, total: ${(totalBytes / 1024 / 1024).toStringAsFixed(2)} MB',
           );
         }
       }
 
       if (kDebugMode) {
-        print(
+        logR(
+          'Downloaded',
           'Total merged: ${(totalBytes / 1024 / 1024).toStringAsFixed(2)} MB',
         );
       }

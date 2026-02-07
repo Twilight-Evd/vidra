@@ -145,7 +145,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   throw Exception('Cannot open folder');
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('${tr("video.detail.error")}: $e')),
                   );
@@ -287,7 +287,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   throw Exception('Cannot open folder');
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Failed to open folder: $e')),
                   );
@@ -318,7 +318,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               if (confirmed == true) {
                 await settingsRepo.clearCache();
                 ref.invalidate(cacheSizeProvider);
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(tr('settings.status.cleared'))),
                   );

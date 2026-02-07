@@ -144,7 +144,7 @@ class EpisodeSection extends HookConsumerWidget {
                         color: isCooldown
                             ? Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.3)
+                              ).colorScheme.onSurface.withValues(alpha: 0.3)
                             : Theme.of(context).colorScheme.onSurface,
                       ),
                       onPressed: () {

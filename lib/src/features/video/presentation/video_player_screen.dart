@@ -2,7 +2,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:vidra_player/adapters/video_player/video_player.dart';
+import 'package:vidra/src/core/services/vlc_player_adapter.dart';
 import 'package:vidra_player/controller/player_controller.dart';
 import 'package:vidra_player/core/model/model.dart' as vidra_model;
 import 'package:vidra_player/core/model/player_locale.dart';
@@ -228,14 +228,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen>
               config: config,
               video: _mapMetadata(video),
               episodes: episodes,
-              player: VideoPlayerAdapter(),
+              player: VlcPlayerAdapter(),
               windowDelegate: BitsdojoWindowDelegate(),
               mediaRepository: _mediaRepository,
-              // performanceMonitor:
-              //     SentryPlayerMonitor(), // Enable Sentry monitoring
             );
           } else {
-            // Optimization: Detect changes and update state instead of recreating
             if (_controller!.config.locale != currentVidraLocale) {
               _controller!.setLocale(currentVidraLocale);
             }
