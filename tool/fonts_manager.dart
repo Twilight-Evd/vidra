@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:vidra/src/core/utils/log.dart';
+import '../lib/src/core/utils/log.dart';
 
 void main(List<String> args) {
   final pubspecFile = File('pubspec.yaml');
